@@ -1,0 +1,38 @@
+services:
+  redis:
+    image: redis:8.2.4-alpine
+    command: ["redis-server", "--save", ""]
+
+  placement:
+    image: daprio/placement:1.16.0
+    command: ["./placement", "--port", "50006"]
+
+  lighting-service:
+    build: .
+    environment:
+      - ROLE=lighting
+      - ACTOR_ID=lighting-0
+      - ROOM_ID=Room 0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://lighting-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://lighting-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+
+  lighting-sidecar:
+    image: daprio/daprd:1.16.0
+    command:
+      [
+        "./daprd",
+        "--app-id", "lighting-service",
+        "--app-port", "3000",
+        "--app-channel-address", "lighting-service",
+        "--placement-host-address", "placement:50006",
+        "--resources-path", "/components",
+        "--log-level", "info",
+      ]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - lighting-service
