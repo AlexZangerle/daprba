@@ -21,4 +21,4 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 }
 
-application { mainClass.set("at.ac.uibk.dps.dapr.bms.LightingAppKt") }
+application { mainClass.set("ac.at.uibk.dps.dapr.bms.LightingAppKt") }
