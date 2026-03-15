@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.dapr.bms.lighting
+package ac.at.uibk.dps.dapr.bms.lighting
 
 import io.dapr.Topic
 import io.dapr.actors.ActorId
@@ -7,6 +7,7 @@ import io.dapr.actors.client.ActorProxyBuilder
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import kotlin.collections.get
 
 /** Pub/sub subscriber for the lighting actor. */
 @RestController

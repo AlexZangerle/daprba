@@ -1,5 +1,6 @@
-package at.ac.uibk.dps.dapr.bms.lighting
+package ac.at.uibk.dps.dapr.bms.lighting
 
+import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
 import io.dapr.actors.ActorId
 import io.dapr.actors.runtime.AbstractActor
 import io.dapr.actors.runtime.ActorRuntimeContext

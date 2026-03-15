@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.dapr.bms.lighting
+package ac.at.uibk.dps.dapr.bms.lighting
 
 import io.dapr.actors.ActorType
 
