@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.dapr.lighting
+package at.ac.uibk.dps.dapr.bms
 
 import io.dapr.actors.runtime.ActorRuntime
 import org.springframework.boot.autoconfigure.SpringBootApplication

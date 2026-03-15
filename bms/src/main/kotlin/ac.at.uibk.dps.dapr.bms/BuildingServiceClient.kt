@@ -1,4 +1,4 @@
-package at.ac.uibk.dps.dapr.lighting
+package at.ac.uibk.dps.dapr.bms
 
 import java.net.URI
 import java.net.http.HttpClient
