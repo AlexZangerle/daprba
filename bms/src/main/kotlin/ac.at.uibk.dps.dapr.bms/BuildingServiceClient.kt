@@ -138,4 +138,8 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
       println("  [SERVICE ERROR] detectFire: ${e.message}")
     }
   }
+
+  // Fire Door
+  fun openFireDoor(doorId: String) = post("/openFireDoor", """{"doorId":"$doorId"}""")
+  fun closeFireDoor(doorId: String) = post("/closeFireDoor", """{"doorId":"$doorId"}""")
 }

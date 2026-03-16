@@ -5,6 +5,7 @@ import ac.at.uibk.dps.dapr.bms.hvac.HvacActorImpl
 import ac.at.uibk.dps.dapr.bms.shading.ShadingActorImpl
 import ac.at.uibk.dps.dapr.bms.roomoccupancy.RoomOccupancyActorImpl
 import ac.at.uibk.dps.dapr.bms.fire.FireActorImpl
+import ac.at.uibk.dps.dapr.bms.firedoor.FireDoorActorImpl
 import io.dapr.actors.runtime.ActorRuntime
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -19,6 +20,7 @@ fun main(args: Array<String>) {
     "shading" -> ActorRuntime.getInstance().registerActor(ShadingActorImpl::class.java)
     "roomOccupancy" -> ActorRuntime.getInstance().registerActor(RoomOccupancyActorImpl::class.java)
     "fire" -> ActorRuntime.getInstance().registerActor(FireActorImpl::class.java)
+    "fireDoor" -> ActorRuntime.getInstance().registerActor(FireDoorActorImpl::class.java)
   }
   runApplication<BMS>(*args)
 }
