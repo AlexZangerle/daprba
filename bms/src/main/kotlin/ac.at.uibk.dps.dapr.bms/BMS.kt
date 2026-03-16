@@ -8,6 +8,9 @@ import org.springframework.boot.runApplication
 @SpringBootApplication class LightingApp
 
 fun main(args: Array<String>) {
-  ActorRuntime.getInstance().registerActor(LightingActorImpl::class.java)
+  val role = System.getenv("ROLE") ?: "lighting"
+  when (role) {
+    "lighting" -> ActorRuntime.getInstance().registerActor(LightingActorImpl::class.java)
+    "hvac" -> ActorRuntime.getInstance().registerActor(HvacActorImpl::class.java)
   runApplication<LightingApp>(*args)
 }

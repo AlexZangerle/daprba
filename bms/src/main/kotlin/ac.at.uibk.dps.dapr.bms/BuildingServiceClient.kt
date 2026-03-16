@@ -5,7 +5,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
-/** HTTP client for the building service */
+/** HTTP client for the building service (Flask). */
 class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005") {
 
   private val client = HttpClient.newHttpClient()
@@ -26,15 +26,41 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
     }
   }
 
+  // --- Lighting ---
   fun turnOn(roomId: String) = post("/turnOn", """{"roomId":"$roomId"}""")
-
   fun turnOff(roomId: String) = post("/turnOff", """{"roomId":"$roomId"}""")
-
   fun dim(roomId: String) = post("/dim", """{"roomId":"$roomId"}""")
-
   fun turnUserLevel(roomId: String, lightLevel: Int) =
     post("/userLevelLight", """{"roomId":"$roomId","lightLevel":$lightLevel}""")
-
   fun evacuationLights(roomId: String, emergencyRoomId: String) =
     post("/evacuationLights", """{"roomId":"$roomId","emergencyRoomId":"$emergencyRoomId"}""")
+
+  // --- HVAC ---
+  fun setHvac(mode: String, roomId: String) =
+    post("/setHVAC", """{"mode":"$mode","roomId":"$roomId"}""")
+
+  /** Async indoor temp fetch with callback */
+  fun getIndoorTemp(roomId: String, callback: (Double) -> Unit) {
+    try {
+      val request =
+        HttpRequest.newBuilder()
+          .uri(URI.create("$baseUrl/getIndoorTemp"))
+          .header("Content-Type", "application/json")
+          .POST(HttpRequest.BodyPublishers.ofString("""{"roomId":"$roomId"}"""))
+          .build()
+      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
+        try {
+          val body = response.body()
+          val match = Regex(""""indoorTemp"\s*:\s*([0-9.]+)""").find(body)
+          if (match != null) {
+            callback(match.groupValues[1].toDouble())
+          }
+        } catch (e: Exception) {
+          println("  [SERVICE ERROR] getIndoorTemp parse: ${e.message}")
+        }
+      }
+    } catch (e: Exception) {
+      println("  [SERVICE ERROR] getIndoorTemp: ${e.message}")
+    }
+  }
 }
