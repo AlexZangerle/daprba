@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController
 
 /** Pub/sub subscriber for the HVAC actor. */
 @RestController
+@ConditionalOnProperty("app.role", havingValue = "hvac")
 class HvacSubscriber {
 
   private val actorId = System.getenv("ACTOR_ID") ?: "hvac-0"

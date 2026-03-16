@@ -11,6 +11,7 @@ import kotlin.collections.get
 
 /** Pub/sub subscriber for the lighting actor. */
 @RestController
+@ConditionalOnProperty("app.role", havingValue = "lighting")
 class LightingSubscriber {
 
   private val actorId = System.getenv("ACTOR_ID") ?: "lighting-0"

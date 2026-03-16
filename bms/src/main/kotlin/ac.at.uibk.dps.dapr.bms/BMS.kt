@@ -5,12 +5,13 @@ import io.dapr.actors.runtime.ActorRuntime
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
-@SpringBootApplication class LightingApp
+@SpringBootApplication class BMS
 
 fun main(args: Array<String>) {
   val role = System.getenv("ROLE") ?: "lighting"
   when (role) {
     "lighting" -> ActorRuntime.getInstance().registerActor(LightingActorImpl::class.java)
     "hvac" -> ActorRuntime.getInstance().registerActor(HvacActorImpl::class.java)
-  runApplication<LightingApp>(*args)
+  }
+  runApplication<BMS>(*args)
 }
