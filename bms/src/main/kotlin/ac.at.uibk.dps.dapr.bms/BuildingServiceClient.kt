@@ -176,9 +176,7 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
           .header("Content-Type", "application/json")
           .POST(HttpRequest.BodyPublishers.ofString("{}"))
           .build()
-      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept {
-        callback()
-      }
+      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { callback() }
     } catch (e: Exception) {
       println("  [SERVICE ERROR] electricalFaultAcknowledged: ${e.message}")
     }
@@ -238,4 +236,41 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
 
   fun highRiskTemp(roomId: String) =
     post("/highRiskTemp", """{"roomId":"$roomId"}""")
+
+  // Building Schedule
+  fun getScheduleMode(callback: (String) -> Unit) {
+    try {
+      val request =
+        HttpRequest.newBuilder()
+          .uri(URI.create("$baseUrl/getScheduleMode"))
+          .header("Content-Type", "application/json")
+          .POST(HttpRequest.BodyPublishers.ofString("{}"))
+          .build()
+      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
+        try {
+          val match = Regex(""""currentSchedule"\s*:\s*"([^"]+)"""").find(response.body())
+          callback(match?.groupValues?.get(1) ?: "afterHours")
+        } catch (e: Exception) {
+          println("  [SERVICE ERROR] getScheduleMode parse: ${e.message}")
+        }
+      }
+    } catch (e: Exception) {
+      println("  [SERVICE ERROR] getScheduleMode: ${e.message}")
+    }
+  }
+
+  // Room Schedule
+  fun initializeZone(callback: () -> Unit) {
+    try {
+      val request =
+        HttpRequest.newBuilder()
+          .uri(URI.create("$baseUrl/initializeZone"))
+          .header("Content-Type", "application/json")
+          .POST(HttpRequest.BodyPublishers.ofString("{}"))
+          .build()
+      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { callback() }
+    } catch (e: Exception) {
+      println("  [SERVICE ERROR] initializeZone: ${e.message}")
+    }
+  }
 }
