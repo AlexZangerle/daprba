@@ -1,6 +1,7 @@
 package ac.at.uibk.dps.dapr.bms
 
 import ac.at.uibk.dps.dapr.bms.lighting.LightingActorImpl
+import ac.at.uibk.dps.dapr.bms.hvac.HvacActorImpl
 import io.dapr.actors.runtime.ActorRuntime
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
