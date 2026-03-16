@@ -6,6 +6,9 @@ import ac.at.uibk.dps.dapr.bms.shading.ShadingActorImpl
 import ac.at.uibk.dps.dapr.bms.roomoccupancy.RoomOccupancyActorImpl
 import ac.at.uibk.dps.dapr.bms.fire.FireActorImpl
 import ac.at.uibk.dps.dapr.bms.firedoor.FireDoorActorImpl
+import ac.at.uibk.dps.dapr.bms.electricalsafety.ElectricalSafetyActorImpl
+import ac.at.uibk.dps.dapr.bms.gassafety.GasSafetyActorImpl
+import ac.at.uibk.dps.dapr.bms.tempsafety.TempSafetyActorImpl
 import io.dapr.actors.runtime.ActorRuntime
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -21,6 +24,9 @@ fun main(args: Array<String>) {
     "roomOccupancy" -> ActorRuntime.getInstance().registerActor(RoomOccupancyActorImpl::class.java)
     "fire" -> ActorRuntime.getInstance().registerActor(FireActorImpl::class.java)
     "fireDoor" -> ActorRuntime.getInstance().registerActor(FireDoorActorImpl::class.java)
+    "electricalSafety" -> ActorRuntime.getInstance().registerActor(ElectricalSafetyActorImpl::class.java)
+    "gasSafety" -> ActorRuntime.getInstance().registerActor(GasSafetyActorImpl::class.java)
+    "tempSafety" -> ActorRuntime.getInstance().registerActor(TempSafetyActorImpl::class.java)
   }
   runApplication<BMS>(*args)
 }
