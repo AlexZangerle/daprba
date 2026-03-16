@@ -12,6 +12,8 @@ import ac.at.uibk.dps.dapr.bms.tempsafety.TempSafetyActorImpl
 import ac.at.uibk.dps.dapr.bms.buildingschedule.BuildingScheduleActorImpl
 import ac.at.uibk.dps.dapr.bms.roomschedule.RoomScheduleActorImpl
 import ac.at.uibk.dps.dapr.bms.energymanagement.EnergyManagementActorImpl
+import ac.at.uibk.dps.dapr.bms.securityManager.SecurityManagerActorImpl
+import ac.at.uibk.dps.dapr.bms.accessControl.AccessControlActorImpl
 import io.dapr.actors.runtime.ActorRuntime
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
@@ -33,6 +35,8 @@ fun main(args: Array<String>) {
     "buildingSchedule" -> ActorRuntime.getInstance().registerActor(BuildingScheduleActorImpl::class.java)
     "roomSchedule" -> ActorRuntime.getInstance().registerActor(RoomScheduleActorImpl::class.java)
     "energyManagement" -> ActorRuntime.getInstance().registerActor(EnergyManagementActorImpl::class.java)
+    "securityManager" -> ActorRuntime.getInstance().registerActor(SecurityManagerActorImpl::class.java)
+    "accessControl" -> ActorRuntime.getInstance().registerActor(AccessControlActorImpl::class.java)
   }
   runApplication<BMS>(*args)
 }
