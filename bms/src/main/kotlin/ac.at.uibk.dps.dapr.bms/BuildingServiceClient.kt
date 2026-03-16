@@ -112,4 +112,30 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
   }
 
   fun maintenance(roomId: String) = post("/maintenance", """{"roomId":"$roomId"}""")
+
+  // Fire
+  fun detectFire(imageData: String, zoneId: String, callback: (String, String) -> Unit) {
+    try {
+      val request =
+        HttpRequest.newBuilder()
+          .uri(URI.create("$baseUrl/detectFire"))
+          .header("Content-Type", "application/json")
+          .POST(HttpRequest.BodyPublishers.ofString("""{"imageData":"$imageData","zoneId":"$zoneId"}"""))
+          .build()
+      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
+        try {
+          val body = response.body()
+          val resultMatch = Regex(""""fireDetectionResult"\s*:\s*"(\w+)"""").find(body)
+          val roomMatch = Regex(""""emergencyInRoom"\s*:\s*"([^"]+)"""").find(body)
+          val result = resultMatch?.groupValues?.get(1) ?: "none"
+          val room = roomMatch?.groupValues?.get(1) ?: "none"
+          callback(result, room)
+        } catch (e: Exception) {
+          println("  [SERVICE ERROR] detectFire parse: ${e.message}")
+        }
+      }
+    } catch (e: Exception) {
+      println("  [SERVICE ERROR] detectFire: ${e.message}")
+    }
+  }
 }
