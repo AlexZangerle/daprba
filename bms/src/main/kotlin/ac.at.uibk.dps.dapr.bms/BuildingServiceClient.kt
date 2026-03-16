@@ -41,23 +41,18 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
 
   fun getIndoorTemp(roomId: String, callback: (Double) -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/getIndoorTemp"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("""{"roomId":"$roomId"}"""))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/getIndoorTemp"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("""{"roomId":"$roomId"}"""))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
         try {
           val match = Regex(""""indoorTemp"\s*:\s*([0-9.]+)""").find(response.body())
           if (match != null) callback(match.groupValues[1].toDouble())
-        } catch (e: Exception) {
-          println("  [SERVICE ERROR] getIndoorTemp parse: ${e.message}")
-        }
+        } catch (e: Exception) { println("  [SERVICE ERROR] getIndoorTemp parse: ${e.message}") }
       }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] getIndoorTemp: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] getIndoorTemp: ${e.message}") }
   }
 
   // Shading
@@ -69,46 +64,35 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
 
   fun getOutdoorTemp(callback: (Double) -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/getOutdoorTemp"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("{}"))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/getOutdoorTemp"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("{}"))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
         try {
           val match = Regex(""""outdoorTemp"\s*:\s*([0-9.]+)""").find(response.body())
           if (match != null) callback(match.groupValues[1].toDouble())
-        } catch (e: Exception) {
-          println("  [SERVICE ERROR] getOutdoorTemp parse: ${e.message}")
-        }
+        } catch (e: Exception) { println("  [SERVICE ERROR] getOutdoorTemp parse: ${e.message}") }
       }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] getOutdoorTemp: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] getOutdoorTemp: ${e.message}") }
   }
 
   // Room Occupancy
   fun detectOccupancy(imageData: String, callback: (Boolean) -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/detectOccupancy"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("""{"imageData":"$imageData"}"""))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/detectOccupancy"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("""{"imageData":"$imageData"}"""))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
         try {
           val match = Regex(""""occupancyDetected"\s*:\s*(true|false)""").find(response.body())
-          val detected = match?.groupValues?.get(1)?.toBoolean() ?: false
-          callback(detected)
-        } catch (e: Exception) {
-          println("  [SERVICE ERROR] detectOccupancy parse: ${e.message}")
-        }
+          callback(match?.groupValues?.get(1)?.toBoolean() ?: false)
+        } catch (e: Exception) { println("  [SERVICE ERROR] detectOccupancy parse: ${e.message}") }
       }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] detectOccupancy: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] detectOccupancy: ${e.message}") }
   }
 
   fun maintenance(roomId: String) = post("/maintenance", """{"roomId":"$roomId"}""")
@@ -116,27 +100,20 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
   // Fire
   fun detectFire(imageData: String, zoneId: String, callback: (String, String) -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/detectFire"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("""{"imageData":"$imageData","zoneId":"$zoneId"}"""))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/detectFire"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("""{"imageData":"$imageData","zoneId":"$zoneId"}"""))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
         try {
           val body = response.body()
           val resultMatch = Regex(""""fireDetectionResult"\s*:\s*"(\w+)"""").find(body)
           val roomMatch = Regex(""""emergencyInRoom"\s*:\s*"([^"]+)"""").find(body)
-          val result = resultMatch?.groupValues?.get(1) ?: "none"
-          val room = roomMatch?.groupValues?.get(1) ?: "none"
-          callback(result, room)
-        } catch (e: Exception) {
-          println("  [SERVICE ERROR] detectFire parse: ${e.message}")
-        }
+          callback(resultMatch?.groupValues?.get(1) ?: "none", roomMatch?.groupValues?.get(1) ?: "none")
+        } catch (e: Exception) { println("  [SERVICE ERROR] detectFire parse: ${e.message}") }
       }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] detectFire: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] detectFire: ${e.message}") }
   }
 
   // Fire Door
@@ -146,23 +123,18 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
   // Electrical Safety
   fun checkArcFault(callback: (String) -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/checkArcFault"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("{}"))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/checkArcFault"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("{}"))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
         try {
           val match = Regex(""""arcFaultLocation"\s*:\s*"([^"]+)"""").find(response.body())
           callback(match?.groupValues?.get(1) ?: "none")
-        } catch (e: Exception) {
-          println("  [SERVICE ERROR] checkArcFault parse: ${e.message}")
-        }
+        } catch (e: Exception) { println("  [SERVICE ERROR] checkArcFault parse: ${e.message}") }
       }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] checkArcFault: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] checkArcFault: ${e.message}") }
   }
 
   fun tripCircuitBreaker(location: String) =
@@ -170,107 +142,116 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
 
   fun acknowledgedElectrical(callback: () -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/electricalFaultAcknowledged"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("{}"))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/electricalFaultAcknowledged"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("{}"))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { callback() }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] electricalFaultAcknowledged: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] electricalFaultAcknowledged: ${e.message}") }
   }
 
   // Gas Safety
   fun checkGasLeak(callback: (String) -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/checkGasFault"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("{}"))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/checkGasFault"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("{}"))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
         try {
           val match = Regex(""""gasLeakLocation"\s*:\s*"([^"]+)"""").find(response.body())
           callback(match?.groupValues?.get(1) ?: "none")
-        } catch (e: Exception) {
-          println("  [SERVICE ERROR] checkGasFault parse: ${e.message}")
-        }
+        } catch (e: Exception) { println("  [SERVICE ERROR] checkGasFault parse: ${e.message}") }
       }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] checkGasFault: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] checkGasFault: ${e.message}") }
   }
 
   fun closeGasValve(location: String) =
     post("/closeGasValve", """{"gasLeakLocation":"$location"}""")
-
   fun cutPower(location: String) =
     post("/cutPower", """{"gasLeakLocation":"$location"}""")
-
   fun gasLeakPurged() = post("/gasLeakPurged")
 
   // Temp Safety
   fun getRoomTemp(roomId: String, callback: (Double) -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/getRoomTemp"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("""{"roomId":"$roomId"}"""))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/getRoomTemp"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("""{"roomId":"$roomId"}"""))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
         try {
           val match = Regex(""""roomTemp"\s*:\s*([0-9.]+)""").find(response.body())
           if (match != null) callback(match.groupValues[1].toDouble())
-        } catch (e: Exception) {
-          println("  [SERVICE ERROR] getRoomTemp parse: ${e.message}")
-        }
+        } catch (e: Exception) { println("  [SERVICE ERROR] getRoomTemp parse: ${e.message}") }
       }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] getRoomTemp: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] getRoomTemp: ${e.message}") }
   }
 
-  fun highRiskTemp(roomId: String) =
-    post("/highRiskTemp", """{"roomId":"$roomId"}""")
+  fun highRiskTemp(roomId: String) = post("/highRiskTemp", """{"roomId":"$roomId"}""")
 
   // Building Schedule
   fun getScheduleMode(callback: (String) -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/getScheduleMode"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("{}"))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/getScheduleMode"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("{}"))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
         try {
           val match = Regex(""""currentSchedule"\s*:\s*"([^"]+)"""").find(response.body())
           callback(match?.groupValues?.get(1) ?: "afterHours")
-        } catch (e: Exception) {
-          println("  [SERVICE ERROR] getScheduleMode parse: ${e.message}")
-        }
+        } catch (e: Exception) { println("  [SERVICE ERROR] getScheduleMode parse: ${e.message}") }
       }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] getScheduleMode: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] getScheduleMode: ${e.message}") }
   }
 
   // Room Schedule
   fun initializeZone(callback: () -> Unit) {
     try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl/initializeZone"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString("{}"))
-          .build()
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/initializeZone"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("{}"))
+        .build()
       client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { callback() }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] initializeZone: ${e.message}")
-    }
+    } catch (e: Exception) { println("  [SERVICE ERROR] initializeZone: ${e.message}") }
+  }
+
+  // Energy Management
+  fun getEnergyPrice(callback: (Double) -> Unit) {
+    try {
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/getEnergyPrice"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("{}"))
+        .build()
+      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
+        try {
+          val match = Regex(""""energyPrice"\s*:\s*([0-9.]+)""").find(response.body())
+          if (match != null) callback(match.groupValues[1].toDouble())
+        } catch (e: Exception) { println("  [SERVICE ERROR] getEnergyPrice parse: ${e.message}") }
+      }
+    } catch (e: Exception) { println("  [SERVICE ERROR] getEnergyPrice: ${e.message}") }
+  }
+
+  fun checkGridStatus(callback: (String) -> Unit) {
+    try {
+      val request = HttpRequest.newBuilder()
+        .uri(URI.create("$baseUrl/checkGridStatus"))
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString("{}"))
+        .build()
+      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
+        try {
+          val match = Regex(""""gridStatus"\s*:\s*"([^"]+)"""").find(response.body())
+          callback(match?.groupValues?.get(1) ?: "normal")
+        } catch (e: Exception) { println("  [SERVICE ERROR] checkGridStatus parse: ${e.message}") }
+      }
+    } catch (e: Exception) { println("  [SERVICE ERROR] checkGridStatus: ${e.message}") }
   }
 }
