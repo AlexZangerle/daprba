@@ -87,4 +87,29 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
       println("  [SERVICE ERROR] getOutdoorTemp: ${e.message}")
     }
   }
+
+  // Room Occupancy
+  fun detectOccupancy(imageData: String, callback: (Boolean) -> Unit) {
+    try {
+      val request =
+        HttpRequest.newBuilder()
+          .uri(URI.create("$baseUrl/detectOccupancy"))
+          .header("Content-Type", "application/json")
+          .POST(HttpRequest.BodyPublishers.ofString("""{"imageData":"$imageData"}"""))
+          .build()
+      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept { response ->
+        try {
+          val match = Regex(""""occupancyDetected"\s*:\s*(true|false)""").find(response.body())
+          val detected = match?.groupValues?.get(1)?.toBoolean() ?: false
+          callback(detected)
+        } catch (e: Exception) {
+          println("  [SERVICE ERROR] detectOccupancy parse: ${e.message}")
+        }
+      }
+    } catch (e: Exception) {
+      println("  [SERVICE ERROR] detectOccupancy: ${e.message}")
+    }
+  }
+
+  fun maintenance(roomId: String) = post("/maintenance", """{"roomId":"$roomId"}""")
 }
