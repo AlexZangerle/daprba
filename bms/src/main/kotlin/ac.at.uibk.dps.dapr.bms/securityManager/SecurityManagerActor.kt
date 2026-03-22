@@ -8,10 +8,10 @@ import io.dapr.actors.ActorType
  */
 @ActorType(name = "SecurityManagerActor")
 interface SecurityManagerActor {
-  fun onForcedEntry(doorId: String, zoneId: String)
-  fun onTamperDetected(deviceId: String, location: String)
+  fun onForcedEntry(data: Map<String, String>)
+  fun onTamperDetected(data: Map<String, String>)
   fun onManualSecurityAlert()
-  fun onAccessDenied(doorId: String, user: String)
+  fun onAccessDenied(data:Map<String, String>)
   fun onClearSecurityAlert()
   fun onFireAlarm()
   fun onGasLeakDetected()

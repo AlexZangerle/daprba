@@ -25,7 +25,7 @@ class FireSubscriber {
     val data = body["data"] as? Map<*, *> ?: body
     val imageData = data["imageData"] as? String ?: ""
     val zoneId = data["zoneId"] as? String ?: "Room 0"
-    fireProxy.onSensorFireDataReceived(imageData, zoneId)
+    fireProxy.onSensorFireDataReceived(mapOf("imageData" to imageData, "zoneId" to zoneId))
   }
 
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")

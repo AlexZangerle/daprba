@@ -92,15 +92,17 @@ class FireActorImpl(runtimeContext: ActorRuntimeContext<FireActorImpl>, actorId:
   }
 
   // External event handlers
-  override fun onSensorFireDataReceived(imageData: String, zoneId: String) {
+  override fun onSensorFireDataReceived(imageData: Map<String, String>) {
+    val image = imageData["imageData"] ?: ""
+    val zone = imageData["zoneId"] ?: "Room 0"
     when (state) {
       State.DETECTING -> {
-        service.detectFire(imageData, zoneId) { result, room ->
+        service.detectFire(image, zone) { result, room ->
           onDetectionDone(result, room)
         }
       }
       State.SMOKE_ALERT -> {
-        service.detectFire(imageData, zoneId) { result, room ->
+        service.detectFire(image, zone) { result, room ->
           onEscalationCheckDone(result, room)
         }
       }

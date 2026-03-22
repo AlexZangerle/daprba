@@ -97,10 +97,10 @@ class SecurityManagerActorImpl(
   }
 
   // External
-  override fun onForcedEntry(doorId: String, zoneId: String) {
+  override fun onForcedEntry(data: Map<String, String>) {
     when (state) {
       State.SECURE -> {
-        alertDetails = "Forced entry detected at door $doorId in zone $zoneId"
+        alertDetails = "Forced entry detected at door ${data["doorId"]} in zone ${data["zoneId"]}"
         enterIntrusionAlert()
       }
       State.ELEVATED_RISK -> enterIntrusionAlert()
@@ -108,10 +108,10 @@ class SecurityManagerActorImpl(
     }
   }
 
-  override fun onTamperDetected(deviceId: String, location: String) {
+  override fun onTamperDetected(data: Map<String, String>) {
     when (state) {
       State.SECURE -> {
-        alertDetails = "Tamper detected on device $deviceId at $location"
+        alertDetails = "Tamper detected on device ${data["deviceId"]} at ${data["location"]}"
         enterIntrusionAlert()
       }
       State.ELEVATED_RISK -> enterIntrusionAlert()
@@ -126,16 +126,16 @@ class SecurityManagerActorImpl(
     }
   }
 
-  override fun onAccessDenied(doorId: String, user: String) {
+  override fun onAccessDenied(data: Map<String, String>) {
     when (state) {
       State.SECURE -> {
         failedAttemptsCount++
-        alertDetails = "Repeated access denied at door $doorId. User: $user"
+        alertDetails = "Repeated access denied at door ${data["doorId"]}. User: ${data["user"]}"
         if (failedAttemptsCount >= 3) enterElevatedRisk()
       }
       State.ELEVATED_RISK -> {
         failedAttemptsCount++
-        alertDetails = "Escalation: Further access denied at door $doorId. User: $user"
+        alertDetails = "Escalation: Further access denied at door ${data["doorId"]}. User: ${data["user"]}"
         if (failedAttemptsCount >= 5) enterIntrusionAlert()
       }
       else -> {}

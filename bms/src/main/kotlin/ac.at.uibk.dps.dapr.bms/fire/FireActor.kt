@@ -10,7 +10,7 @@ import io.dapr.actors.ActorType
 interface FireActor {
 
   // Sensor input
-  fun onSensorFireDataReceived(imageData: String, zoneId: String)
+  fun onSensorFireDataReceived(imageData: Map<String, String>)
 
   // Manual disarm
   fun onDisarmFireAlarm()

@@ -21,19 +21,16 @@ class SecurityManagerSubscriber {
   @Topic(name = "forcedEntry", pubsubName = "pubsub")
   @PostMapping("/forcedEntry")
   fun handleForcedEntry(@RequestBody body: Map<String, Any>) {
-    val data = body["data"] as? Map<*, *> ?: body
-    val doorId = data["doorId"] as? String ?: ""
-    val zoneId = data["zoneId"] as? String ?: ""
-    proxy.onForcedEntry(doorId, zoneId)
+    val data = body["data"] as Map<String, String>
+    proxy.onForcedEntry(data)
   }
+
 
   @Topic(name = "tamperDetected", pubsubName = "pubsub")
   @PostMapping("/tamperDetected")
   fun handleTamperDetected(@RequestBody body: Map<String, Any>) {
-    val data = body["data"] as? Map<*, *> ?: body
-    val deviceId = data["deviceId"] as? String ?: ""
-    val location = data["location"] as? String ?: ""
-    proxy.onTamperDetected(deviceId, location)
+    val data = body["data"] as Map<String, String>
+    proxy.onTamperDetected(data)
   }
 
   @Topic(name = "manualSecurityAlert", pubsubName = "pubsub")
@@ -45,10 +42,8 @@ class SecurityManagerSubscriber {
   @Topic(name = "accessDenied", pubsubName = "pubsub")
   @PostMapping("/accessDenied")
   fun handleAccessDenied(@RequestBody body: Map<String, Any>) {
-    val data = body["data"] as? Map<*, *> ?: body
-    val doorId = data["doorId"] as? String ?: ""
-    val user = data["user"] as? String ?: ""
-    proxy.onAccessDenied(doorId, user)
+    val data = body["data"] as Map<String, String>
+    proxy.onAccessDenied(data)
   }
 
   @Topic(name = "clearSecurityAlert", pubsubName = "pubsub")

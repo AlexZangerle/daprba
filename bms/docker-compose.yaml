@@ -7,7 +7,20 @@ services:
     image: daprio/placement:1.16.0
     command: ["./placement", "--port", "50006"]
 
-  lighting-service:
+  # Simulation entry point (no app, just pub/sub gateway)
+  simulation-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "simulation", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    ports:
+      - "3500:3500"
+    depends_on:
+      - redis
+      - placement
+
+  # Room-scoped subsystems
+  lighting:
     build: .
     environment:
       - ROLE=lighting
@@ -19,20 +32,266 @@ services:
     depends_on:
       - redis
       - placement
-
   lighting-sidecar:
     image: daprio/daprd:1.16.0
-    command:
-      [
-        "./daprd",
-        "--app-id", "lighting-service",
-        "--app-port", "3000",
-        "--app-channel-address", "lighting-service",
-        "--placement-host-address", "placement:50006",
-        "--resources-path", "/components",
-        "--log-level", "info",
-      ]
+    command: ["./daprd", "--app-id", "lighting", "--app-port", "3000", "--app-channel-address", "lighting", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
     volumes:
       - ./redis/components:/components
     depends_on:
-      - lighting-service
+      - lighting
+
+  hvac:
+    build: .
+    environment:
+      - ROLE=hvac
+      - ACTOR_ID=hvac-0
+      - ROOM_ID=Room 0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://hvac-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://hvac-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  hvac-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "hvac", "--app-port", "3000", "--app-channel-address", "hvac", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - hvac
+
+  shading:
+    build: .
+    environment:
+      - ROLE=shading
+      - ACTOR_ID=shading-0
+      - ROOM_ID=Room 0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://shading-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://shading-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  shading-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "shading", "--app-port", "3000", "--app-channel-address", "shading", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - shading
+
+  room-occupancy:
+    build: .
+    environment:
+      - ROLE=roomOccupancy
+      - ACTOR_ID=roomOccupancy-0
+      - ROOM_ID=Room 0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://room-occupancy-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://room-occupancy-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  room-occupancy-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "room-occupancy", "--app-port", "3000", "--app-channel-address", "room-occupancy", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - room-occupancy
+
+  temp-safety:
+    build: .
+    environment:
+      - ROLE=tempSafety
+      - ACTOR_ID=tempSafety-0
+      - ROOM_ID=Room 0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://temp-safety-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://temp-safety-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  temp-safety-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "temp-safety", "--app-port", "3000", "--app-channel-address", "temp-safety", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - temp-safety
+
+  room-schedule:
+    build: .
+    environment:
+      - ROLE=roomSchedule
+      - ACTOR_ID=roomSchedule-0
+      - ROOM_ID=Room 0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://room-schedule-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://room-schedule-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  room-schedule-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "room-schedule", "--app-port", "3000", "--app-channel-address", "room-schedule", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - room-schedule
+
+  # Door-scoped subsystems
+  access-control:
+    build: .
+    environment:
+      - ROLE=accessControl
+      - ACTOR_ID=accessControl-0
+      - DOOR_ID=Door 0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://access-control-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://access-control-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  access-control-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "access-control", "--app-port", "3000", "--app-channel-address", "access-control", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - access-control
+
+  fire-door:
+    build: .
+    environment:
+      - ROLE=fireDoor
+      - ACTOR_ID=fireDoor-0
+      - DOOR_ID=Door 0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://fire-door-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://fire-door-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  fire-door-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "fire-door", "--app-port", "3000", "--app-channel-address", "fire-door", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - fire-door
+
+  # Building-wide subsystems
+  fire:
+    build: .
+    environment:
+      - ROLE=fire
+      - ACTOR_ID=fire-0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://fire-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://fire-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  fire-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "fire", "--app-port", "3000", "--app-channel-address", "fire", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - fire
+
+  electrical-safety:
+    build: .
+    environment:
+      - ROLE=electricalSafety
+      - ACTOR_ID=electricalSafety-0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://electrical-safety-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://electrical-safety-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  electrical-safety-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "electrical-safety", "--app-port", "3000", "--app-channel-address", "electrical-safety", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - electrical-safety
+
+  gas-safety:
+    build: .
+    environment:
+      - ROLE=gasSafety
+      - ACTOR_ID=gasSafety-0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://gas-safety-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://gas-safety-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  gas-safety-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "gas-safety", "--app-port", "3000", "--app-channel-address", "gas-safety", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - gas-safety
+
+  building-schedule:
+    build: .
+    environment:
+      - ROLE=buildingSchedule
+      - ACTOR_ID=buildingSchedule-0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://building-schedule-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://building-schedule-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  building-schedule-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "building-schedule", "--app-port", "3000", "--app-channel-address", "building-schedule", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - building-schedule
+
+  energy-management:
+    build: .
+    environment:
+      - ROLE=energyManagement
+      - ACTOR_ID=energyManagement-0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://energy-management-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://energy-management-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  energy-management-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "energy-management", "--app-port", "3000", "--app-channel-address", "energy-management", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - energy-management
+
+  security-manager:
+    build: .
+    environment:
+      - ROLE=securityManager
+      - ACTOR_ID=securityManager-0
+      - BUILDING_SERVICE_URL=http://host.docker.internal:8005
+      - DAPR_HTTP_ENDPOINT=http://security-manager-sidecar:3500
+      - DAPR_GRPC_ENDPOINT=http://security-manager-sidecar:50001
+    depends_on:
+      - redis
+      - placement
+  security-manager-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id", "security-manager", "--app-port", "3000", "--app-channel-address", "security-manager", "--placement-host-address", "placement:50006", "--resources-path", "/components", "--log-level", "info"]
+    volumes:
+      - ./redis/components:/components
+    depends_on:
+      - security-manager
