@@ -9,121 +9,82 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
-/**
- * Security manager actor implementation.
- *
- * States: SECURE, ELEVATED_RISK, INTRUSION_ALERT, EMERGENCY_RESPONSE
- */
 class SecurityManagerActorImpl(
   runtimeContext: ActorRuntimeContext<SecurityManagerActorImpl>,
-  actorId: ActorId
+  actorId: ActorId,
 ) : AbstractActor(runtimeContext, actorId), SecurityManagerActor {
 
-  enum class State { SECURE, ELEVATED_RISK, INTRUSION_ALERT, EMERGENCY_RESPONSE }
+  enum class State {
+    SECURE,
+    ELEVATED_RISK,
+    INTRUSION_ALERT,
+    EMERGENCY_RESPONSE,
+  }
 
   private var state: State = State.SECURE
-
   private var failedAttemptsCount: Int = 0
   private var alertDetails: String = ""
-  private var fireAlarm: Boolean = false
-  private var gasActive: Boolean = false
-
+  private var isFireAlarm: Boolean = false
+  private var isGasActive: Boolean = false
   private val daprClient = DaprClientBuilder().build()
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
-
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var decayTimer: ScheduledFuture<*>? = null
 
-  init {
-    println("[SECURITY] Initialized in SECURE state")
-  }
-
-  // Pub/sub emission
-  private fun emitFlashAllLights() {
-    daprClient.publishEvent("pubsub", "flashAllLights", mapOf<String, Any>()).subscribe()
-    println("[SECURITY] EMITTED flashAllLights")
-  }
-
-  private fun emitUnlockEvacuationRoutes() {
-    daprClient.publishEvent("pubsub", "unlockAllEvacuationRoutes", mapOf<String, Any>()).subscribe()
-    println("[SECURITY] EMITTED unlockAllEvacuationRoutes")
-  }
-
-  // Timer
-  private fun cancelDecayTimer() {
+  private fun cancelDecay() {
     decayTimer?.cancel(false)
     decayTimer = null
   }
 
-  // Guard
-  private fun isSafeToExitEmergency(): Boolean = !fireAlarm && !gasActive
-
-  // State entries
   private fun enterSecure() {
     state = State.SECURE
-    cancelDecayTimer()
+    cancelDecay()
     failedAttemptsCount = 0
     alertDetails = ""
-    println("[SECURITY] -> SECURE")
   }
 
   private fun enterElevatedRisk() {
     state = State.ELEVATED_RISK
     service.notifySecurity(alertDetails)
-    cancelDecayTimer()
-    decayTimer = scheduler.schedule({ onDecayRisk() }, 1800000, TimeUnit.MILLISECONDS)
-    println("[SECURITY] -> ELEVATED_RISK (attempts=$failedAttemptsCount)")
+    cancelDecay()
+    decayTimer =
+      scheduler.schedule(
+        { if (state == State.ELEVATED_RISK) enterSecure() },
+        1800000,
+        TimeUnit.MILLISECONDS,
+      )
   }
 
   private fun enterIntrusionAlert() {
     state = State.INTRUSION_ALERT
-    cancelDecayTimer()
-    emitFlashAllLights()
+    cancelDecay()
+    daprClient.publishEvent("pubsub", "flashAllLights", mapOf<String, Any>()).subscribe()
     service.notifySecurity("INTRUSION ALERT:$alertDetails")
-    println("[SECURITY] -> INTRUSION_ALERT")
   }
 
   private fun enterEmergencyResponse() {
     state = State.EMERGENCY_RESPONSE
-    cancelDecayTimer()
-    emitUnlockEvacuationRoutes()
-    println("[SECURITY] -> EMERGENCY_RESPONSE")
+    cancelDecay()
+    daprClient.publishEvent("pubsub", "unlockAllEvacuationRoutes", mapOf<String, Any>()).subscribe()
   }
 
-  // Internal timeout
-  private fun onDecayRisk() {
-    if (state == State.ELEVATED_RISK) enterSecure()
-  }
-
-  // External
   override fun onForcedEntry(data: Map<String, String>) {
-    when (state) {
-      State.SECURE -> {
-        alertDetails = "Forced entry detected at door ${data["doorId"]} in zone ${data["zoneId"]}"
-        enterIntrusionAlert()
-      }
-      State.ELEVATED_RISK -> enterIntrusionAlert()
-      else -> {}
-    }
+    if (state == State.SECURE) {
+      alertDetails = "Forced entry detected at door ${data["doorId"]} in zone ${data["zoneId"]}"
+      enterIntrusionAlert()
+    } else if (state == State.ELEVATED_RISK) enterIntrusionAlert()
   }
 
   override fun onTamperDetected(data: Map<String, String>) {
-    when (state) {
-      State.SECURE -> {
-        alertDetails = "Tamper detected on device ${data["deviceId"]} at ${data["location"]}"
-        enterIntrusionAlert()
-      }
-      State.ELEVATED_RISK -> enterIntrusionAlert()
-      else -> {}
-    }
+    if (state == State.SECURE) {
+      alertDetails = "Tamper detected on device ${data["deviceId"]} at ${data["location"]}"
+      enterIntrusionAlert()
+    } else if (state == State.ELEVATED_RISK) enterIntrusionAlert()
   }
 
   override fun onManualSecurityAlert() {
-    when (state) {
-      State.SECURE, State.ELEVATED_RISK -> enterIntrusionAlert()
-      else -> {}
-    }
+    if (state == State.SECURE || state == State.ELEVATED_RISK) enterIntrusionAlert()
   }
 
   override fun onAccessDenied(data: Map<String, String>) {
@@ -135,7 +96,8 @@ class SecurityManagerActorImpl(
       }
       State.ELEVATED_RISK -> {
         failedAttemptsCount++
-        alertDetails = "Escalation: Further access denied at door ${data["doorId"]}. User: ${data["user"]}"
+        alertDetails =
+          "Escalation: Further access denied at door ${data["doorId"]}. User: ${data["user"]}"
         if (failedAttemptsCount >= 5) enterIntrusionAlert()
       }
       else -> {}
@@ -143,35 +105,28 @@ class SecurityManagerActorImpl(
   }
 
   override fun onClearSecurityAlert() {
-    when (state) {
-      State.ELEVATED_RISK, State.INTRUSION_ALERT -> enterSecure()
-      else -> {}
-    }
+    if (state == State.ELEVATED_RISK || state == State.INTRUSION_ALERT) enterSecure()
   }
 
   override fun onFireAlarm() {
-    fireAlarm = true
-    when (state) {
-      State.SECURE, State.ELEVATED_RISK, State.INTRUSION_ALERT -> enterEmergencyResponse()
-      else -> {}
-    }
+    isFireAlarm = true
+    if (state == State.SECURE || state == State.ELEVATED_RISK || state == State.INTRUSION_ALERT)
+      enterEmergencyResponse()
   }
 
   override fun onGasLeakDetected() {
-    gasActive = true
-    when (state) {
-      State.SECURE, State.ELEVATED_RISK, State.INTRUSION_ALERT -> enterEmergencyResponse()
-      else -> {}
-    }
+    isGasActive = true
+    if (state == State.SECURE || state == State.ELEVATED_RISK || state == State.INTRUSION_ALERT)
+      enterEmergencyResponse()
   }
 
   override fun onDisarmFireAlarm() {
-    fireAlarm = false
-    if (state == State.EMERGENCY_RESPONSE && isSafeToExitEmergency()) enterSecure()
+    isFireAlarm = false
+    if (state == State.EMERGENCY_RESPONSE && !isFireAlarm && !isGasActive) enterSecure()
   }
 
   override fun onGasPurged() {
-    gasActive = false
-    if (state == State.EMERGENCY_RESPONSE && isSafeToExitEmergency()) enterSecure()
+    isGasActive = false
+    if (state == State.EMERGENCY_RESPONSE && !isFireAlarm && !isGasActive) enterSecure()
   }
 }

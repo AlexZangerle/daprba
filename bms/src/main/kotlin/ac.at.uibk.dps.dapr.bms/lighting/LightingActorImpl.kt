@@ -8,15 +8,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
-/**
- * Lighting actor implementation.
- *
- * States: OFF, ON, DIM, USER_LEVEL, SAFETY_OFF, FLASHING_ON, FLASHING_OFF
- */
 class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, actorId: ActorId) :
   AbstractActor(runtimeContext, actorId), LightingActor {
 
-  // State
   enum class State {
     OFF,
     ON,
@@ -29,169 +23,111 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
 
   private var state: State = State.OFF
   private val roomId: String = System.getenv("ROOM_ID") ?: "Room 0"
-
-  private var energySaving: Boolean = false
-  private var fireAlarm: Boolean = false
-  private var gasActive: Boolean = false
+  private var isEnergySaving: Boolean = false
+  private var isFireAlarm: Boolean = false
+  private var isGasActive: Boolean = false
   private var arcFault: Boolean = false
-
   private var userLightLevel: Int = 0
-
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
-
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var flashTimer: ScheduledFuture<*>? = null
 
   init {
-    enterOff()
-    println("[LIGHTING] Initialized in OFF state, roomId=$roomId")
+    service.turnOff(roomId)
+  }
+
+  private fun cancelFlash() {
+    flashTimer?.cancel(false)
+    flashTimer = null
   }
 
   private fun enterOff() {
     state = State.OFF
-    cancelFlashTimer()
+    cancelFlash()
     service.turnOff(roomId)
-    println("[LIGHTING] -> OFF")
   }
 
   private fun enterOn() {
     state = State.ON
-    cancelFlashTimer()
+    cancelFlash()
     service.turnOn(roomId)
-    println("[LIGHTING] -> ON")
   }
 
   private fun enterDim() {
     state = State.DIM
-    cancelFlashTimer()
+    cancelFlash()
     service.dim(roomId)
-    println("[LIGHTING] -> DIM")
   }
 
   private fun enterUserLevel() {
     state = State.USER_LEVEL
-    cancelFlashTimer()
+    cancelFlash()
     service.turnUserLevel(roomId, userLightLevel)
-    println("[LIGHTING] -> USER_LEVEL ($userLightLevel%)")
   }
 
   private fun enterSafetyOff() {
     state = State.SAFETY_OFF
-    cancelFlashTimer()
-    println("[LIGHTING] -> SAFETY_OFF")
+    cancelFlash()
   }
 
   private fun enterFlashingOn() {
     state = State.FLASHING_ON
     service.turnOn(roomId)
-    scheduleFlashTimer(500) { onFlashOff() }
-    println("[LIGHTING] -> FLASHING_ON")
+    flashTimer =
+      scheduler.schedule(
+        { if (state == State.FLASHING_ON) enterFlashingOff() },
+        500,
+        TimeUnit.MILLISECONDS,
+      )
   }
 
   private fun enterFlashingOff() {
     state = State.FLASHING_OFF
     service.turnOff(roomId)
-    scheduleFlashTimer(1000) { onFlashOn() }
-    println("[LIGHTING] -> FLASHING_OFF")
+    flashTimer =
+      scheduler.schedule(
+        { if (state == State.FLASHING_OFF) enterFlashingOn() },
+        1000,
+        TimeUnit.MILLISECONDS,
+      )
   }
 
-  // Guards
-  private fun isEnergySavingInactive(): Boolean = !energySaving
-
-  private fun isSafeToExitEmergency(): Boolean = !gasActive && !fireAlarm && !arcFault
-
-  // Flash timer helpers
-  private fun cancelFlashTimer() {
-    flashTimer?.cancel(false)
-    flashTimer = null
-  }
-
-  private fun scheduleFlashTimer(delayMs: Long, action: () -> Unit) {
-    cancelFlashTimer()
-    flashTimer = scheduler.schedule(action, delayMs, TimeUnit.MILLISECONDS)
-  }
-
-  // Internal flash events
-  private fun onFlashOn() {
-    if (state == State.FLASHING_OFF) enterFlashingOn()
-  }
-
-  private fun onFlashOff() {
-    if (state == State.FLASHING_ON) enterFlashingOff()
-  }
-
-  // Event handlers
   override fun onOccupancyDetected() {
-    when (state) {
-      State.OFF -> {
-        if (isEnergySavingInactive()) enterOn() else enterDim()
-      }
-      State.DIM -> {
-        if (isEnergySavingInactive()) enterOn()
-      }
-      else -> {}
-    }
+    if (state == State.OFF) {
+      if (!isEnergySaving) enterOn() else enterDim()
+    } else if (state == State.DIM && !isEnergySaving) enterOn()
   }
 
   override fun onOccupancyTransient() {
-    when (state) {
-      State.ON -> enterDim()
-      else -> {}
-    }
+    if (state == State.ON) enterDim()
   }
 
   override fun onOccupancyVacant() {
-    when (state) {
-      State.ON,
-      State.DIM -> enterOff()
-      else -> {}
-    }
+    if (state == State.ON || state == State.DIM) enterOff()
   }
 
   override fun onActivateLightUserLevel(lightLevel: Int) {
-    when (state) {
-      State.OFF,
-      State.ON,
-      State.DIM -> {
-        userLightLevel = lightLevel
-        enterUserLevel()
-      }
-      else -> {}
+    if (state == State.OFF || state == State.ON || state == State.DIM) {
+      userLightLevel = lightLevel
+      enterUserLevel()
     }
   }
 
   override fun onDeactivateLightUserLevel() {
-    when (state) {
-      State.USER_LEVEL -> enterOff()
-      else -> {}
-    }
+    if (state == State.USER_LEVEL) enterOff()
   }
 
   override fun onActivateEnergySaving() {
-    when (state) {
-      State.OFF,
-      State.DIM -> {
-        energySaving = true
-        println("[LIGHTING] energySaving = true")
-      }
-      else -> {}
-    }
+    if (state == State.OFF || state == State.DIM) isEnergySaving = true
   }
 
   override fun onDeactivateEnergySaving() {
-    when (state) {
-      State.OFF,
-      State.DIM -> {
-        energySaving = false
-        println("[LIGHTING] energySaving = false")
-      }
-      else -> {}
-    }
+    if (state == State.OFF || state == State.DIM) isEnergySaving = false
   }
 
   override fun onFireAlarm(emergencyInRoom: String) {
-    fireAlarm = true
+    isFireAlarm = true
     when (state) {
       State.OFF,
       State.ON,
@@ -202,14 +138,12 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
         enterSafetyOff()
         service.evacuationLights(roomId, emergencyInRoom)
       }
-      State.SAFETY_OFF -> {
-        service.evacuationLights(roomId, emergencyInRoom)
-      }
+      State.SAFETY_OFF -> service.evacuationLights(roomId, emergencyInRoom)
     }
   }
 
   override fun onGasLeakDetected() {
-    gasActive = true
+    isGasActive = true
     when (state) {
       State.OFF,
       State.ON,
@@ -220,9 +154,7 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
         enterSafetyOff()
         service.turnOff(roomId)
       }
-      State.SAFETY_OFF -> {
-        service.turnOff(roomId)
-      }
+      State.SAFETY_OFF -> service.turnOff(roomId)
     }
   }
 
@@ -238,57 +170,31 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
         enterSafetyOff()
         service.turnOff(roomId)
       }
-      State.SAFETY_OFF -> {
-        service.turnOff(roomId)
-      }
+      State.SAFETY_OFF -> service.turnOff(roomId)
     }
   }
 
   override fun onDisarmFireAlarm() {
-    fireAlarm = false
-    when (state) {
-      State.SAFETY_OFF -> {
-        if (isSafeToExitEmergency()) enterOff()
-      }
-      else -> {}
-    }
+    isFireAlarm = false
+    if (state == State.SAFETY_OFF && !isGasActive && !isFireAlarm && !arcFault) enterOff()
   }
 
   override fun onGasPurged() {
-    gasActive = false
-    when (state) {
-      State.SAFETY_OFF -> {
-        if (isSafeToExitEmergency()) enterOff()
-      }
-      else -> {}
-    }
+    isGasActive = false
+    if (state == State.SAFETY_OFF && !isGasActive && !isFireAlarm && !arcFault) enterOff()
   }
 
   override fun onResetElectricalFault() {
     arcFault = false
-    when (state) {
-      State.SAFETY_OFF -> {
-        if (isSafeToExitEmergency()) enterOff()
-      }
-      else -> {}
-    }
+    if (state == State.SAFETY_OFF && !isGasActive && !isFireAlarm && !arcFault) enterOff()
   }
 
   override fun onFlashAllLights() {
-    when (state) {
-      State.OFF,
-      State.ON,
-      State.DIM,
-      State.USER_LEVEL -> enterFlashingOn()
-      else -> {}
-    }
+    if (state == State.OFF || state == State.ON || state == State.DIM || state == State.USER_LEVEL)
+      enterFlashingOn()
   }
 
   override fun onClearSecurityAlert() {
-    when (state) {
-      State.FLASHING_ON,
-      State.FLASHING_OFF -> enterOff()
-      else -> {}
-    }
+    if (state == State.FLASHING_ON || state == State.FLASHING_OFF) enterOff()
   }
 }

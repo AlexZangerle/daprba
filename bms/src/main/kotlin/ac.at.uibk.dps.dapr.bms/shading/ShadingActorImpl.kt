@@ -8,268 +8,196 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
-/**
- * Shading actor implementation.
- *
- * States: HALF, FULLY_OPEN, CLOSE, USER_LEVEL, EMERGENCY
- */
 class ShadingActorImpl(runtimeContext: ActorRuntimeContext<ShadingActorImpl>, actorId: ActorId) :
   AbstractActor(runtimeContext, actorId), ShadingActor {
 
-  enum class State { HALF, FULLY_OPEN, CLOSE, USER_LEVEL, EMERGENCY }
+  enum class State {
+    HALF,
+    FULLY_OPEN,
+    CLOSE,
+    USER_LEVEL,
+    EMERGENCY,
+  }
 
   private var state: State = State.HALF
   private val roomId: String = System.getenv("ROOM_ID") ?: "Room 0"
-
   private var isLocked: Boolean = false
   private var outdoorTemp: Double = 0.0
-  private var fireAlarm: Boolean = false
-  private var gasActive: Boolean = false
-  private var smokeAlert: Boolean = false
+  private var isFireAlarm: Boolean = false
+  private var isGasActive: Boolean = false
+  private var isSmokeAlert: Boolean = false
   private var arcFault: Boolean = false
   private var userBlindLevel: Int = 0
-
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
-
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var tempPollTimer: ScheduledFuture<*>? = null
 
   init {
     enterHalf()
-    println("[SHADING] Initialized in HALF state, roomId=$roomId")
   }
 
-  // Temperature polling
-  private fun cancelTempPoll() {
+  private fun cancelPoll() {
     tempPollTimer?.cancel(false)
     tempPollTimer = null
   }
 
-  private fun scheduleTempPoll() {
-    cancelTempPoll()
-    tempPollTimer = scheduler.schedule({ pollOutdoorTemp() }, 60000, TimeUnit.MILLISECONDS)
+  private fun schedulePoll() {
+    cancelPoll()
+    tempPollTimer = scheduler.schedule({ pollOutdoor() }, 60000, TimeUnit.MILLISECONDS)
   }
 
-  private fun pollOutdoorTemp() {
+  private fun pollOutdoor() {
     service.getOutdoorTemp { temp ->
-      onOutdoorCheckDone(temp)
+      outdoorTemp = temp
+      when (state) {
+        State.HALF ->
+          if (!isLocked)
+            when {
+              outdoorTemp < 15 -> enterFullyOpen()
+              outdoorTemp >= 22 -> enterClose()
+              else -> schedulePoll()
+            }
+          else schedulePoll()
+        State.FULLY_OPEN ->
+          if (!isLocked)
+            when {
+              outdoorTemp >= 15 && outdoorTemp < 22 -> enterHalf()
+              outdoorTemp >= 22 -> enterClose()
+              else -> schedulePoll()
+            }
+          else schedulePoll()
+        State.CLOSE ->
+          if (!isLocked)
+            when {
+              outdoorTemp < 15 -> enterFullyOpen()
+              outdoorTemp >= 15 && outdoorTemp < 22 -> enterHalf()
+              else -> schedulePoll()
+            }
+          else schedulePoll()
+        State.USER_LEVEL -> schedulePoll()
+        State.EMERGENCY -> {}
+      }
     }
   }
 
-  // Guards
-  private fun isCold(): Boolean = outdoorTemp < 15
-  private fun isMedium(): Boolean = outdoorTemp >= 15 && outdoorTemp < 22
-  private fun isHot(): Boolean = outdoorTemp >= 22
-  private fun isNotLocked(): Boolean = !isLocked
-
-  private fun isSafeToExitEmergency(): Boolean =
-    !fireAlarm && !gasActive && !smokeAlert && !arcFault
-
-  // State entry actions
   private fun enterHalf() {
     state = State.HALF
-    cancelTempPoll()
+    cancelPoll()
     service.blindsHalf(roomId)
-    scheduleTempPoll()
-    println("[SHADING] -> HALF")
+    schedulePoll()
   }
 
   private fun enterFullyOpen() {
     state = State.FULLY_OPEN
-    cancelTempPoll()
+    cancelPoll()
     service.blindsOpen(roomId)
-    scheduleTempPoll()
-    println("[SHADING] -> FULLY_OPEN")
+    schedulePoll()
   }
 
   private fun enterClose() {
     state = State.CLOSE
-    cancelTempPoll()
+    cancelPoll()
     service.blindsClose(roomId)
-    scheduleTempPoll()
-    println("[SHADING] -> CLOSE")
+    schedulePoll()
   }
 
   private fun enterUserLevel() {
     state = State.USER_LEVEL
-    cancelTempPoll()
+    cancelPoll()
     service.blindsUserLevel(roomId, userBlindLevel)
-    pollOutdoorTemp()
-    scheduleTempPoll()
-    println("[SHADING] -> USER_LEVEL ($userBlindLevel%)")
+    pollOutdoor()
+    schedulePoll()
   }
 
   private fun enterEmergency() {
     state = State.EMERGENCY
-    cancelTempPoll()
+    cancelPoll()
     service.blindsUserLevel(roomId, 100)
-    println("[SHADING] -> EMERGENCY (blinds 100%)")
   }
 
-  // Internal: outdoor temp check done
-  private fun onOutdoorCheckDone(temp: Double) {
-    outdoorTemp = temp
-    println("[SHADING] Outdoor temp: ${temp}°C")
-
-    when (state) {
-      State.HALF -> {
-        if (isNotLocked()) {
-          when {
-            isCold() -> enterFullyOpen()
-            isHot() -> enterClose()
-            else -> scheduleTempPoll()
-          }
-        } else scheduleTempPoll()
-      }
-      State.FULLY_OPEN -> {
-        if (isNotLocked()) {
-          when {
-            isMedium() -> enterHalf()
-            isHot() -> enterClose()
-            else -> scheduleTempPoll()
-          }
-        } else scheduleTempPoll()
-      }
-      State.CLOSE -> {
-        if (isNotLocked()) {
-          when {
-            isCold() -> enterFullyOpen()
-            isMedium() -> enterHalf()
-            else -> scheduleTempPoll()
-          }
-        } else scheduleTempPoll()
-      }
-      State.USER_LEVEL -> {
-        scheduleTempPoll()
-      }
-      State.EMERGENCY -> {}
-    }
-  }
-
-  // External event handlers
   override fun onActivateBlindsUserLevel(blindLevel: Int) {
-    when (state) {
-      State.HALF, State.FULLY_OPEN, State.CLOSE -> {
-        userBlindLevel = blindLevel
-        enterUserLevel()
-      }
-      else -> {}
+    if (state == State.HALF || state == State.FULLY_OPEN || state == State.CLOSE) {
+      userBlindLevel = blindLevel
+      enterUserLevel()
     }
   }
 
   override fun onDeactivateBlindsUserLevel() {
-    when (state) {
-      State.USER_LEVEL -> {
-        when {
-          isCold() -> enterFullyOpen()
-          isHot() -> enterClose()
-          else -> enterHalf()
-        }
+    if (state == State.USER_LEVEL)
+      when {
+        outdoorTemp < 15 -> enterFullyOpen()
+        outdoorTemp >= 22 -> enterClose()
+        else -> enterHalf()
       }
-      else -> {}
-    }
   }
 
   override fun onLockBlinds() {
-    when (state) {
-      State.HALF, State.FULLY_OPEN, State.CLOSE, State.USER_LEVEL -> {
-        isLocked = true
-        println("[SHADING] Blinds LOCKED")
-      }
-      else -> {}
-    }
+    if (state != State.EMERGENCY) isLocked = true
   }
 
   override fun onUnlockBlinds() {
-    when (state) {
-      State.HALF, State.FULLY_OPEN, State.CLOSE, State.USER_LEVEL -> {
-        isLocked = false
-        println("[SHADING] Blinds UNLOCKED")
-      }
-      else -> {}
-    }
+    if (state != State.EMERGENCY) isLocked = false
   }
 
   override fun onZoneActive() {
-    when (state) {
-      State.CLOSE -> enterHalf()
-      else -> {}
-    }
+    if (state == State.CLOSE) enterHalf()
   }
 
   override fun onZoneInactive() {
-    when (state) {
-      State.HALF, State.FULLY_OPEN, State.USER_LEVEL -> enterClose()
-      else -> {}
-    }
+    if (state == State.HALF || state == State.FULLY_OPEN || state == State.USER_LEVEL) enterClose()
   }
 
   override fun onLockdownZone() {
-    when (state) {
-      State.HALF, State.USER_LEVEL -> enterClose()
-      else -> {}
-    }
+    if (state == State.HALF || state == State.USER_LEVEL) enterClose()
   }
 
   override fun onClearSecurityAlert() {
-    when (state) {
-      State.CLOSE -> enterHalf()
-      else -> {}
-    }
+    if (state == State.CLOSE) enterHalf()
   }
 
-  // Safety events
   override fun onFireAlarm() {
-    fireAlarm = true
-    when (state) {
-      State.HALF, State.FULLY_OPEN, State.CLOSE, State.USER_LEVEL -> enterEmergency()
-      else -> {}
-    }
+    isFireAlarm = true
+    if (state != State.EMERGENCY) enterEmergency()
   }
 
   override fun onSmokeAlert() {
-    smokeAlert = true
-    when (state) {
-      State.HALF, State.FULLY_OPEN, State.CLOSE, State.USER_LEVEL -> enterEmergency()
-      else -> {}
-    }
+    isSmokeAlert = true
+    if (state != State.EMERGENCY) enterEmergency()
   }
 
   override fun onGasLeakDetected() {
-    gasActive = true
-    when (state) {
-      State.HALF, State.FULLY_OPEN, State.CLOSE, State.USER_LEVEL -> enterEmergency()
-      else -> {}
-    }
+    isGasActive = true
+    if (state != State.EMERGENCY) enterEmergency()
   }
 
   override fun onArcFaultDetected() {
     arcFault = true
-    when (state) {
-      State.HALF, State.FULLY_OPEN, State.CLOSE, State.USER_LEVEL -> enterEmergency()
-      else -> {}
-    }
+    if (state != State.EMERGENCY) enterEmergency()
   }
 
-  // Safety recovery
   override fun onDisarmFireAlarm() {
-    fireAlarm = false
-    if (state == State.EMERGENCY && isSafeToExitEmergency()) enterHalf()
+    isFireAlarm = false
+    if (state == State.EMERGENCY && !isFireAlarm && !isGasActive && !isSmokeAlert && !arcFault)
+      enterHalf()
   }
 
   override fun onGasPurged() {
-    gasActive = false
-    if (state == State.EMERGENCY && isSafeToExitEmergency()) enterHalf()
+    isGasActive = false
+    if (state == State.EMERGENCY && !isFireAlarm && !isGasActive && !isSmokeAlert && !arcFault)
+      enterHalf()
   }
 
   override fun onDisarmSmokeAlert() {
-    smokeAlert = false
-    if (state == State.EMERGENCY && isSafeToExitEmergency()) enterHalf()
+    isSmokeAlert = false
+    if (state == State.EMERGENCY && !isFireAlarm && !isGasActive && !isSmokeAlert && !arcFault)
+      enterHalf()
   }
 
   override fun onResetElectricalFault() {
     arcFault = false
-    if (state == State.EMERGENCY && isSafeToExitEmergency()) enterHalf()
+    if (state == State.EMERGENCY && !isFireAlarm && !isGasActive && !isSmokeAlert && !arcFault) {
+      enterHalf()
+    }
   }
 }

@@ -9,175 +9,130 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
-/**
- * Room schedule actor implementation.
- *
- * States: INIT, ACTIVE, INACTIVE, WARNING, AUTHORIZED_STAY, EMERGENCY
- */
 class RoomScheduleActorImpl(
   runtimeContext: ActorRuntimeContext<RoomScheduleActorImpl>,
-  actorId: ActorId
+  actorId: ActorId,
 ) : AbstractActor(runtimeContext, actorId), RoomScheduleActor {
 
-  enum class State { INIT, ACTIVE, INACTIVE, WARNING, AUTHORIZED_STAY, EMERGENCY }
+  enum class State {
+    INIT,
+    ACTIVE,
+    INACTIVE,
+    WARNING,
+    AUTHORIZED_STAY,
+    EMERGENCY,
+  }
 
   private var state: State = State.INIT
-
-  // Persistent
   private var fireAlarm: Boolean = false
   private var gasActive: Boolean = false
-
   private val daprClient = DaprClientBuilder().build()
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
-
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var timer: ScheduledFuture<*>? = null
 
   init {
-    enterInit()
-    println("[ROOM_SCHEDULE] Initialized")
+    state = State.INIT
+    service.initializeZone { enterInactive() }
   }
 
-  // Pub/sub emission
-  private fun emitZoneActive() {
-    daprClient.publishEvent("pubsub", "zoneActive", mapOf<String, Any>()).subscribe()
-    println("[ROOM_SCHEDULE] EMITTED zoneActive")
-  }
-
-  private fun emitZoneInactive() {
-    daprClient.publishEvent("pubsub", "zoneInactive", mapOf<String, Any>()).subscribe()
-    println("[ROOM_SCHEDULE] EMITTED zoneInactive")
-  }
-
-  private fun emitZoneWarning() {
-    daprClient.publishEvent("pubsub", "zoneWarning", mapOf<String, Any>()).subscribe()
-    println("[ROOM_SCHEDULE] EMITTED zoneWarning")
-  }
-
-  // Timer
   private fun cancelTimer() {
     timer?.cancel(false)
     timer = null
   }
 
-  // Guard
-  private fun isSafeToExitEmergency(): Boolean = !fireAlarm && !gasActive
-
-  // State entries
-  private fun enterInit() {
-    state = State.INIT
-    // CSML: entry invokes initializeZone -> zoneInitialized -> inactive
-    service.initializeZone { enterInactive() }
-    println("[ROOM_SCHEDULE] -> INIT")
-  }
-
   private fun enterActive() {
     state = State.ACTIVE
     cancelTimer()
-    emitZoneActive()
-    println("[ROOM_SCHEDULE] -> ACTIVE")
+    daprClient.publishEvent("pubsub", "zoneActive", mapOf<String, Any>()).subscribe()
   }
 
   private fun enterInactive() {
     state = State.INACTIVE
     cancelTimer()
-    emitZoneInactive()
-    println("[ROOM_SCHEDULE] -> INACTIVE")
+    daprClient.publishEvent("pubsub", "zoneInactive", mapOf<String, Any>()).subscribe()
   }
 
   private fun enterWarning() {
     state = State.WARNING
     cancelTimer()
-    emitZoneWarning()
-    // CSML: after 300000ms (5min) -> shutdownRoom -> inactive
-    timer = scheduler.schedule({ onShutdownRoom() }, 300000, TimeUnit.MILLISECONDS)
-    println("[ROOM_SCHEDULE] -> WARNING (5min grace)")
+    daprClient.publishEvent("pubsub", "zoneWarning", mapOf<String, Any>()).subscribe()
+    timer =
+      scheduler.schedule(
+        { if (state == State.WARNING) enterInactive() },
+        300000,
+        TimeUnit.MILLISECONDS,
+      )
   }
 
   private fun enterAuthorizedStay() {
     state = State.AUTHORIZED_STAY
     cancelTimer()
-    emitZoneActive()
-    // CSML: after 7200000ms (2hr) -> recheckOverride -> warning
-    timer = scheduler.schedule({ onRecheckOverride() }, 7200000, TimeUnit.MILLISECONDS)
-    println("[ROOM_SCHEDULE] -> AUTHORIZED_STAY (2hr lease)")
+    daprClient.publishEvent("pubsub", "zoneActive", mapOf<String, Any>()).subscribe()
+    timer =
+      scheduler.schedule(
+        { if (state == State.AUTHORIZED_STAY) enterWarning() },
+        7200000,
+        TimeUnit.MILLISECONDS,
+      )
   }
 
   private fun enterEmergency() {
     state = State.EMERGENCY
     cancelTimer()
-    println("[ROOM_SCHEDULE] -> EMERGENCY")
   }
 
-  // Internal timeout handlers
-  private fun onShutdownRoom() {
-    if (state == State.WARNING) enterInactive()
-  }
-
-  private fun onRecheckOverride() {
-    if (state == State.AUTHORIZED_STAY) enterWarning()
-  }
-
-  // External events
   override fun onEnterBusinessHours() {
-    when (state) {
-      State.INACTIVE, State.WARNING, State.AUTHORIZED_STAY -> enterActive()
-      else -> {}
-    }
+    if (state == State.INACTIVE || state == State.WARNING || state == State.AUTHORIZED_STAY)
+      enterActive()
   }
 
   override fun onEnterAfterHours() {
-    when (state) {
-      State.ACTIVE -> enterWarning()
-      else -> {}
-    }
+    if (state == State.ACTIVE) enterWarning()
   }
 
   override fun onEnterWeekend() {
-    when (state) {
-      State.ACTIVE -> enterWarning()
-      else -> {}
-    }
+    if (state == State.ACTIVE) enterWarning()
   }
 
   override fun onRequestStay() {
-    when (state) {
-      State.INACTIVE, State.WARNING -> enterAuthorizedStay()
-      else -> {}
-    }
+    if (state == State.INACTIVE || state == State.WARNING) enterAuthorizedStay()
   }
 
   override fun onUserLeftZone() {
-    when (state) {
-      State.AUTHORIZED_STAY -> enterInactive()
-      else -> {}
-    }
+    if (state == State.AUTHORIZED_STAY) enterInactive()
   }
 
   override fun onFireAlarm() {
     fireAlarm = true
-    when (state) {
-      State.ACTIVE, State.INACTIVE, State.WARNING, State.AUTHORIZED_STAY -> enterEmergency()
-      else -> {}
-    }
+    if (
+      state == State.ACTIVE ||
+        state == State.INACTIVE ||
+        state == State.WARNING ||
+        state == State.AUTHORIZED_STAY
+    )
+      enterEmergency()
   }
 
   override fun onGasLeakDetected() {
     gasActive = true
-    when (state) {
-      State.ACTIVE, State.INACTIVE, State.WARNING, State.AUTHORIZED_STAY -> enterEmergency()
-      else -> {}
-    }
+    if (
+      state == State.ACTIVE ||
+        state == State.INACTIVE ||
+        state == State.WARNING ||
+        state == State.AUTHORIZED_STAY
+    )
+      enterEmergency()
   }
 
   override fun onDisarmFireAlarm() {
     fireAlarm = false
-    if (state == State.EMERGENCY && isSafeToExitEmergency()) enterInactive()
+    if (state == State.EMERGENCY && !fireAlarm && !gasActive) enterInactive()
   }
 
   override fun onGasPurged() {
     gasActive = false
-    if (state == State.EMERGENCY && isSafeToExitEmergency()) enterInactive()
+    if (state == State.EMERGENCY && !fireAlarm && !gasActive) enterInactive()
   }
 }
