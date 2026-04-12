@@ -17,6 +17,9 @@ dependencies {
     implementation("io.dapr:dapr-sdk-actors:1.16.0")
     implementation("io.dapr:dapr-sdk-springboot:1.16.0")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.apache.fory:fory-core:0.15.0")
+    implementation("org.apache.fory:fory-kotlin:0.15.0")
+    implementation("org.reflections:reflections:0.10.2")
 }
 
 application { mainClass.set("ac.at.uibk.dps.dapr.bms.BMSKt") }

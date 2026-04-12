@@ -1,235 +1,202 @@
 package ac.at.uibk.dps.dapr.bms
 
+import ac.at.uibk.dps.dapr.bms.bindings.*
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import org.apache.fory.Fory
+import org.apache.fory.ThreadSafeFory
+import org.apache.fory.config.Language
+import org.apache.fory.memory.MemoryBuffer
 
-/** HTTP client for the building service (Flask). */
 class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005") {
 
   private val client = HttpClient.newHttpClient()
 
-  private fun post(endpoint: String, body: String = "") {
-    try {
-      val request =
-        HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl$endpoint"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString(body))
-          .build()
-      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept {
-        println("  [SERVICE] $endpoint -> ${it.statusCode()}")
-      }
-    } catch (e: Exception) {
-      println("  [SERVICE ERROR] $endpoint: ${e.message}")
-    }
+  companion object {
+    private val fory: ThreadSafeFory =
+      Fory.builder()
+        .withLanguage(Language.XLANG)
+        .withRefTracking(true)
+        .buildThreadSafeFory()
+        .apply {
+          listOf(
+              EmptyRequest::class.java,
+              RoomRequest::class.java,
+              LightLevelRequest::class.java,
+              EvacuationLightsRequest::class.java,
+              HvacRequest::class.java,
+              IndoorTempResponse::class.java,
+              BlindLevelRequest::class.java,
+              OutdoorTempResponse::class.java,
+              OccupancyRequest::class.java,
+              OccupancyResponse::class.java,
+              FireDetectionRequest::class.java,
+              FireDetectionResponse::class.java,
+              FireDoorRequest::class.java,
+              ArcFaultResponse::class.java,
+              TripCircuitBreakerRequest::class.java,
+              GasLeakResponse::class.java,
+              GasValveRequest::class.java,
+              RoomTempResponse::class.java,
+              ScheduleModeResponse::class.java,
+              EnergyPriceResponse::class.java,
+              GridStatusResponse::class.java,
+              SecurityNotificationRequest::class.java,
+              DoorRouteResponse::class.java,
+              AuthRequest::class.java,
+              AuthResponse::class.java,
+              AccessRuleRequest::class.java,
+              AccessDecisionResponse::class.java,
+              DoorLockRequest::class.java,
+            )
+            .forEach { register(it, it.simpleName) }
+        }
+
+    private val threadBuffer = ThreadLocal.withInitial { MemoryBuffer.newHeapBuffer(1024) }
   }
 
-  private fun postAsync(endpoint: String, body: String, handler: (String) -> Unit) {
+  private fun action(path: String, req: Any = EmptyRequest()) = execute<Unit>(path, req, null, null)
+
+  private inline fun <reified T> query(
+    path: String,
+    req: Any = EmptyRequest(),
+    noinline cb: (T) -> Unit,
+  ) = execute(path, req, T::class.java, cb)
+
+  private fun <T> execute(path: String, req: Any, resClass: Class<T>?, cb: ((T) -> Unit)?) {
     try {
+      val buffer = threadBuffer.get().apply { writerIndex(0) }
+      fory.serialize(buffer, req)
+
       val request =
         HttpRequest.newBuilder()
-          .uri(URI.create("$baseUrl$endpoint"))
-          .header("Content-Type", "application/json")
-          .POST(HttpRequest.BodyPublishers.ofString(body))
+          .uri(URI.create("$baseUrl$path"))
+          .header("Content-Type", "application/x-fury")
+          .POST(HttpRequest.BodyPublishers.ofByteArray(buffer.getBytes(0, buffer.writerIndex())))
           .build()
-      client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenAccept {
-        handler(it.body())
+
+      client.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray()).thenAccept { res ->
+        if (res.statusCode() in 200..299) {
+          if (cb != null && resClass != null) {
+            @Suppress("UNCHECKED_CAST") cb(fory.deserialize(res.body()) as T)
+          }
+        } else {
+          println("  [SERVICE ERROR] $path -> Status: ${res.statusCode()}")
+        }
       }
     } catch (e: Exception) {
-      println("  [SERVICE ERROR] $endpoint: ${e.message}")
+      println("  [SERVICE ERROR] $path: ${e.message}")
     }
   }
 
   // Lighting
-  fun turnOn(roomId: String) = post("/turnOn", """{"roomId":"$roomId"}""")
+  fun turnOn(roomId: String) = action("/turnOn", RoomRequest(roomId))
 
-  fun turnOff(roomId: String) = post("/turnOff", """{"roomId":"$roomId"}""")
+  fun turnOff(roomId: String) = action("/turnOff", RoomRequest(roomId))
 
-  fun dim(roomId: String) = post("/dim", """{"roomId":"$roomId"}""")
+  fun dim(roomId: String) = action("/dim", RoomRequest(roomId))
 
-  fun turnUserLevel(roomId: String, lightLevel: Int) =
-    post("/userLevelLight", """{"roomId":"$roomId","lightLevel":$lightLevel}""")
+  fun turnUserLevel(roomId: String, level: Int) =
+    action("/userLevelLight", LightLevelRequest(roomId, level))
 
-  fun evacuationLights(roomId: String, emergencyRoomId: String) =
-    post("/evacuationLights", """{"roomId":"$roomId","emergencyRoomId":"$emergencyRoomId"}""")
+  fun evacuationLights(roomId: String, emergencyId: String) =
+    action("/evacuationLights", EvacuationLightsRequest(roomId, emergencyId))
 
   // HVAC
-  fun setHvac(mode: String, roomId: String) =
-    post("/setHVAC", """{"mode":"$mode","roomId":"$roomId"}""")
+  fun setHvac(mode: String, roomId: String) = action("/setHVAC", HvacRequest(mode, roomId))
 
-  fun getIndoorTemp(roomId: String, callback: (Double) -> Unit) {
-    postAsync("/getIndoorTemp", """{"roomId":"$roomId"}""") { body ->
-      Regex(""""indoorTemp"\s*:\s*([0-9.]+)""").find(body)?.let {
-        callback(it.groupValues[1].toDouble())
-      }
-    }
-  }
+  fun getIndoorTemp(roomId: String, cb: (Double) -> Unit) =
+    query<IndoorTempResponse>("/getIndoorTemp", RoomRequest(roomId)) { cb(it.indoorTemp) }
 
   // Shading
-  fun blindsHalf(roomId: String) = post("/blindsHalf", """{"roomId":"$roomId"}""")
+  fun blindsHalf(roomId: String) = action("/blindsHalf", RoomRequest(roomId))
 
-  fun blindsOpen(roomId: String) = post("/blindsOpen", """{"roomId":"$roomId"}""")
+  fun blindsOpen(roomId: String) = action("/blindsOpen", RoomRequest(roomId))
 
-  fun blindsClose(roomId: String) = post("/blindsClose", """{"roomId":"$roomId"}""")
+  fun blindsClose(roomId: String) = action("/blindsClose", RoomRequest(roomId))
 
-  fun blindsUserLevel(roomId: String, blindLevel: Int) =
-    post("/userLevelBlinds", """{"roomId":"$roomId","blindLevel":$blindLevel}""")
+  fun blindsUserLevel(roomId: String, level: Int) =
+    action("/userLevelBlinds", BlindLevelRequest(roomId, level))
 
-  fun getOutdoorTemp(callback: (Double) -> Unit) {
-    postAsync("/getOutdoorTemp", "{}") { body ->
-      Regex(""""outdoorTemp"\s*:\s*([0-9.]+)""").find(body)?.let {
-        callback(it.groupValues[1].toDouble())
-      }
+  fun getOutdoorTemp(cb: (Double) -> Unit) =
+    query<OutdoorTempResponse>("/getOutdoorTemp") { cb(it.outdoorTemp) }
+
+  // Occupancy
+  fun detectOccupancy(imageData: String, cb: (Boolean) -> Unit) =
+    query<OccupancyResponse>("/detectOccupancy", OccupancyRequest(imageData)) {
+      cb(it.occupancyDetected)
     }
-  }
 
-  // Room Occupancy
-  fun detectOccupancy(imageData: String, callback: (Boolean) -> Unit) {
-    postAsync("/detectOccupancy", """{"imageData":"$imageData"}""") { body ->
-      val match = Regex(""""occupancyDetected"\s*:\s*(true|false)""").find(body)
-      callback(match?.groupValues?.get(1)?.toBoolean() ?: false)
+  fun maintenance(roomId: String) = action("/maintenance", RoomRequest(roomId))
+
+  // Fire Safety
+  fun detectFire(img: String, zone: String, cb: (String, String) -> Unit) =
+    query<FireDetectionResponse>("/detectFire", FireDetectionRequest(img, zone)) {
+      cb(it.fireDetectionResult, it.emergencyInRoom)
     }
-  }
 
-  fun maintenance(roomId: String) = post("/maintenance", """{"roomId":"$roomId"}""")
+  fun openFireDoor(doorId: String) = action("/openFireDoor", FireDoorRequest(doorId))
 
-  // Fire
-  fun detectFire(imageData: String, zoneId: String, callback: (String, String) -> Unit) {
-    postAsync("/detectFire", """{"imageData":"$imageData","zoneId":"$zoneId"}""") { body ->
-      val result =
-        Regex(""""fireDetectionResult"\s*:\s*"(\w+)"""").find(body)?.groupValues?.get(1) ?: "none"
-      val room =
-        Regex(""""emergencyInRoom"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1) ?: "none"
-      callback(result, room)
-    }
-  }
+  fun closeFireDoor(doorId: String) = action("/closeFireDoor", FireDoorRequest(doorId))
 
-  // Fire Door
-  fun openFireDoor(doorId: String) = post("/openFireDoor", """{"doorId":"$doorId"}""")
+  // Electrical
+  fun checkArcFault(cb: (String) -> Unit) =
+    query<ArcFaultResponse>("/checkArcFault") { cb(it.arcFaultLocation) }
 
-  fun closeFireDoor(doorId: String) = post("/closeFireDoor", """{"doorId":"$doorId"}""")
+  fun tripCircuitBreaker(loc: String) =
+    action("/tripCircuitBreaker", TripCircuitBreakerRequest(loc))
 
-  // Electrical Safety
-  fun checkArcFault(callback: (String) -> Unit) {
-    postAsync("/checkArcFault", "{}") { body ->
-      callback(
-        Regex(""""arcFaultLocation"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1) ?: "none"
-      )
-    }
-  }
-
-  fun tripCircuitBreaker(location: String) =
-    post("/tripCircuitBreaker", """{"arcFaultLocation":"$location"}""")
-
-  fun acknowledgedElectrical(callback: () -> Unit) {
-    postAsync("/electricalFaultAcknowledged", "{}") { callback() }
-  }
+  fun acknowledgedElectrical(cb: () -> Unit) = action("/electricalFaultAcknowledged") // Simplified
 
   // Gas Safety
-  fun checkGasLeak(callback: (String) -> Unit) {
-    postAsync("/checkGasFault", "{}") { body ->
-      callback(
-        Regex(""""gasLeakLocation"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1) ?: "none"
-      )
-    }
-  }
+  fun checkGasLeak(cb: (String) -> Unit) =
+    query<GasLeakResponse>("/checkGasFault") { cb(it.gasLeakLocation) }
 
-  fun closeGasValve(location: String) =
-    post("/closeGasValve", """{"gasLeakLocation":"$location"}""")
+  fun closeGasValve(loc: String) = action("/closeGasValve", GasValveRequest(loc))
 
-  fun cutPower(location: String) = post("/cutPower", """{"gasLeakLocation":"$location"}""")
+  fun cutPower(loc: String) = action("/cutPower", GasValveRequest(loc))
 
-  fun gasLeakPurged() = post("/gasLeakPurged")
+  fun gasLeakPurged() = action("/gasLeakPurged")
 
   // Temp Safety
-  fun getRoomTemp(roomId: String, callback: (Double) -> Unit) {
-    postAsync("/getRoomTemp", """{"roomId":"$roomId"}""") { body ->
-      Regex(""""roomTemp"\s*:\s*([0-9.]+)""").find(body)?.let {
-        callback(it.groupValues[1].toDouble())
-      }
+  fun getRoomTemp(roomId: String, cb: (Double) -> Unit) =
+    query<RoomTempResponse>("/getRoomTemp", RoomRequest(roomId)) { cb(it.roomTemp) }
+
+  fun highRiskTemp(roomId: String) = action("/highRiskTemp", RoomRequest(roomId))
+
+  // Schedules
+  fun getScheduleMode(cb: (String) -> Unit) =
+    query<ScheduleModeResponse>("/getScheduleMode") { cb(it.currentSchedule) }
+
+  fun initializeZone(cb: () -> Unit) = action("/initializeZone")
+
+  // Energy
+  fun getEnergyPrice(cb: (Double) -> Unit) =
+    query<EnergyPriceResponse>("/getEnergyPrice") { cb(it.energyPrice) }
+
+  fun checkGridStatus(cb: (String) -> Unit) =
+    query<GridStatusResponse>("/checkGridStatus") { cb(it.gridStatus) }
+
+  // Security & Access
+  fun notifySecurity(msg: String) = action("/notifySecurity", SecurityNotificationRequest(msg))
+
+  fun getDoorRouteType(doorId: String, cb: (Boolean, String) -> Unit) =
+    query<DoorRouteResponse>("/getDoorRouteType", FireDoorRequest(doorId)) {
+      cb(it.isEvacuationRoute, it.zoneId)
     }
-  }
 
-  fun highRiskTemp(roomId: String) = post("/highRiskTemp", """{"roomId":"$roomId"}""")
-
-  // Building Schedule
-  fun getScheduleMode(callback: (String) -> Unit) {
-    postAsync("/getScheduleMode", "{}") { body ->
-      callback(
-        Regex(""""currentSchedule"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1)
-          ?: "afterHours"
-      )
+  fun authenticateUser(cardId: String, cb: (String, String, String) -> Unit) =
+    query<AuthResponse>("/authenticateUser", AuthRequest(cardId)) {
+      cb(it.userId, it.userRole, it.authenticationStatus)
     }
-  }
 
-  // Room Schedule
-  fun initializeZone(callback: () -> Unit) {
-    postAsync("/initializeZone", "{}") { callback() }
-  }
-
-  // Energy Management
-  fun getEnergyPrice(callback: (Double) -> Unit) {
-    postAsync("/getEnergyPrice", "{}") { body ->
-      Regex(""""energyPrice"\s*:\s*([0-9.]+)""").find(body)?.let {
-        callback(it.groupValues[1].toDouble())
-      }
+  fun checkAccessRule(role: String, zone: String, mode: String, cb: (String) -> Unit) =
+    query<AccessDecisionResponse>("/checkAccessRule", AccessRuleRequest(role, zone, mode)) {
+      cb(it.accessDecision)
     }
-  }
 
-  fun checkGridStatus(callback: (String) -> Unit) {
-    postAsync("/checkGridStatus", "{}") { body ->
-      callback(
-        Regex(""""gridStatus"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1) ?: "normal"
-      )
-    }
-  }
-
-  // Security Manager
-  fun notifySecurity(message: String) = post("/notifySecurity", """{"message":"$message"}""")
-
-  // Access Control
-  fun getDoorRouteType(doorId: String, callback: (Boolean, String) -> Unit) {
-    postAsync("/getDoorRouteType", """{"doorId":"$doorId"}""") { body ->
-      val evacRoute =
-        Regex(""""isEvacuationRoute"\s*:\s*(true|false)""")
-          .find(body)
-          ?.groupValues
-          ?.get(1)
-          ?.toBoolean() ?: false
-      val zone = Regex(""""zoneId"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1) ?: ""
-      callback(evacRoute, zone)
-    }
-  }
-
-  fun authenticateUser(cardId: String, callback: (String, String, String) -> Unit) {
-    postAsync("/authenticateUser", """{"cardId":"$cardId"}""") { body ->
-      val userId = Regex(""""userId"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1) ?: ""
-      val userRole = Regex(""""userRole"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1) ?: ""
-      val authStatus =
-        Regex(""""authenticationStatus"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1)
-          ?: "Failed"
-      callback(userId, userRole, authStatus)
-    }
-  }
-
-  fun checkAccessRule(
-    userRole: String,
-    zoneId: String,
-    scheduleMode: String,
-    callback: (String) -> Unit,
-  ) {
-    postAsync(
-      "/checkAccessRule",
-      """{"userRole":"$userRole","zoneId":"$zoneId","currentScheduleMode":"$scheduleMode"}""",
-    ) { body ->
-      callback(
-        Regex(""""accessDecision"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1) ?: "Deny"
-      )
-    }
-  }
-
-  fun controlDoorLock(doorId: String, command: String) =
-    post("/controlDoorLock", """{"doorId":"$doorId","command":"$command"}""")
+  fun controlDoorLock(doorId: String, cmd: String) =
+    action("/controlDoorLock", DoorLockRequest(doorId, cmd))
 }
