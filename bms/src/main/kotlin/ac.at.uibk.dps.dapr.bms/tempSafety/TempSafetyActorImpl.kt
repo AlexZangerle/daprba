@@ -1,4 +1,4 @@
-package ac.at.uibk.dps.dapr.bms.tempsafety
+package ac.at.uibk.dps.dapr.bms.tempSafety
 
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
 import io.dapr.actors.ActorId

@@ -1,4 +1,4 @@
-package ac.at.uibk.dps.dapr.bms.energymanagement
+package ac.at.uibk.dps.dapr.bms.energyManagement
 
 import io.dapr.actors.ActorType
 

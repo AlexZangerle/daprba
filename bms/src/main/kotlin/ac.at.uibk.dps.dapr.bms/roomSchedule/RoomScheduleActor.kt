@@ -1,4 +1,4 @@
-package ac.at.uibk.dps.dapr.bms.roomschedule
+package ac.at.uibk.dps.dapr.bms.roomSchedule
 
 import io.dapr.actors.ActorType
 

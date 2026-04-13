@@ -1,4 +1,4 @@
-package ac.at.uibk.dps.dapr.bms.gassafety
+package ac.at.uibk.dps.dapr.bms.gasSafety
 
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
 import io.dapr.actors.ActorId

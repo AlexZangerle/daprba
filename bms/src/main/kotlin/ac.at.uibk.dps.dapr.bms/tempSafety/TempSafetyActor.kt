@@ -1,4 +1,4 @@
-package ac.at.uibk.dps.dapr.bms.tempsafety
+package ac.at.uibk.dps.dapr.bms.tempSafety
 
 import io.dapr.actors.ActorType
 

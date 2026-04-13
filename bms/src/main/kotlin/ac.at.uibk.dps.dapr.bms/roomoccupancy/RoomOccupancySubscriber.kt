@@ -4,6 +4,7 @@ import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
+import io.dapr.client.domain.CloudEvent
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -15,27 +16,25 @@ import org.springframework.web.bind.annotation.RestController
 class RoomOccupancySubscriber {
 
   private val actorId = System.getenv("ACTOR_ID") ?: "roomOccupancy-0"
-  private val actorClient = ActorClient()
   private val proxy: RoomOccupancyActor =
-    ActorProxyBuilder(RoomOccupancyActor::class.java, actorClient).build(ActorId(actorId))
+    ActorProxyBuilder(RoomOccupancyActor::class.java, ActorClient()).build(ActorId(actorId))
 
   @Topic(name = "sensorOccupancyReceived", pubsubName = "pubsub")
   @PostMapping("/sensorOccupancyReceived")
-  fun handleSensorData(@RequestBody body: Map<String, Any>) {
-    val data = body["data"] as? Map<*, *> ?: body
-    val imageData = data["imageData"] as? String ?: ""
+  fun handleSensorData(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    val imageData = event.data["imageData"] as? String ?: ""
     proxy.onSensorOccupancyReceived(imageData)
   }
 
   @Topic(name = "energySavingMode", pubsubName = "pubsub")
   @PostMapping("/energySavingMode")
-  fun handleEnergySaving(@RequestBody body: Map<String, Any>) {
+  fun handleEnergySaving() {
     proxy.onActivateEnergySaving()
   }
 
   @Topic(name = "maintenanceDone", pubsubName = "pubsub")
   @PostMapping("/maintenanceDone")
-  fun handleMaintenanceDone(@RequestBody body: Map<String, Any>) {
+  fun handleMaintenanceDone() {
     proxy.onMaintenanceDone()
   }
 }

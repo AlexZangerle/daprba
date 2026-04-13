@@ -4,6 +4,7 @@ import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
+import io.dapr.client.domain.CloudEvent
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -14,65 +15,60 @@ import org.springframework.web.bind.annotation.RestController
 class SecurityManagerSubscriber {
 
   private val actorId = System.getenv("ACTOR_ID") ?: "securityManager-0"
-  private val actorClient = ActorClient()
   private val proxy: SecurityManagerActor =
-    ActorProxyBuilder(SecurityManagerActor::class.java, actorClient).build(ActorId(actorId))
+    ActorProxyBuilder(SecurityManagerActor::class.java, ActorClient()).build(ActorId(actorId))
 
   @Topic(name = "forcedEntry", pubsubName = "pubsub")
   @PostMapping("/forcedEntry")
-  fun handleForcedEntry(@RequestBody body: Map<String, Any>) {
-    val data = body["data"] as Map<String, String>
-    proxy.onForcedEntry(data)
+  fun handleForcedEntry(@RequestBody event: CloudEvent<Map<String, String>>) {
+    proxy.onForcedEntry(event.data)
   }
-
 
   @Topic(name = "tamperDetected", pubsubName = "pubsub")
   @PostMapping("/tamperDetected")
-  fun handleTamperDetected(@RequestBody body: Map<String, Any>) {
-    val data = body["data"] as Map<String, String>
-    proxy.onTamperDetected(data)
+  fun handleTamperDetected(@RequestBody event: CloudEvent<Map<String, String>>) {
+    proxy.onTamperDetected(event.data)
   }
 
   @Topic(name = "manualSecurityAlert", pubsubName = "pubsub")
   @PostMapping("/manualSecurityAlert")
-  fun handleManualSecurityAlert(@RequestBody body: Map<String, Any>) {
+  fun handleManualSecurityAlert() {
     proxy.onManualSecurityAlert()
   }
 
   @Topic(name = "accessDenied", pubsubName = "pubsub")
   @PostMapping("/accessDenied")
-  fun handleAccessDenied(@RequestBody body: Map<String, Any>) {
-    val data = body["data"] as Map<String, String>
-    proxy.onAccessDenied(data)
+  fun handleAccessDenied(@RequestBody event: CloudEvent<Map<String, String>>) {
+    proxy.onAccessDenied(event.data)
   }
 
   @Topic(name = "clearSecurityAlert", pubsubName = "pubsub")
   @PostMapping("/clearSecurityAlert")
-  fun handleClearSecurityAlert(@RequestBody body: Map<String, Any>) {
+  fun handleClearSecurityAlert() {
     proxy.onClearSecurityAlert()
   }
 
   @Topic(name = "fireAlarm", pubsubName = "pubsub")
   @PostMapping("/fireAlarm")
-  fun handleFireAlarm(@RequestBody body: Map<String, Any>) {
+  fun handleFireAlarm() {
     proxy.onFireAlarm()
   }
 
   @Topic(name = "gasLeakDetected", pubsubName = "pubsub")
   @PostMapping("/gasLeakDetected")
-  fun handleGasLeakDetected(@RequestBody body: Map<String, Any>) {
+  fun handleGasLeakDetected() {
     proxy.onGasLeakDetected()
   }
 
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
-  fun handleDisarmFireAlarm(@RequestBody body: Map<String, Any>) {
+  fun handleDisarmFireAlarm() {
     proxy.onDisarmFireAlarm()
   }
 
   @Topic(name = "gasPurged", pubsubName = "pubsub")
   @PostMapping("/gasPurged")
-  fun handleGasPurged(@RequestBody body: Map<String, Any>) {
+  fun handleGasPurged() {
     proxy.onGasPurged()
   }
 }

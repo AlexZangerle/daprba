@@ -1,4 +1,4 @@
-package ac.at.uibk.dps.dapr.bms.gassafety
+package ac.at.uibk.dps.dapr.bms.gasSafety
 
 import io.dapr.actors.ActorType
 

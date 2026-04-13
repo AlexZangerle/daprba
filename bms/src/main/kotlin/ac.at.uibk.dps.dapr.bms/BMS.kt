@@ -1,19 +1,19 @@
 package ac.at.uibk.dps.dapr.bms
 
 import ac.at.uibk.dps.dapr.bms.accessControl.AccessControlActorImpl
-import ac.at.uibk.dps.dapr.bms.buildingschedule.BuildingScheduleActorImpl
+import ac.at.uibk.dps.dapr.bms.buildingSchedule.BuildingScheduleActorImpl
 import ac.at.uibk.dps.dapr.bms.electricalsafety.ElectricalSafetyActorImpl
-import ac.at.uibk.dps.dapr.bms.energymanagement.EnergyManagementActorImpl
+import ac.at.uibk.dps.dapr.bms.energyManagement.EnergyManagementActorImpl
 import ac.at.uibk.dps.dapr.bms.fire.FireActorImpl
 import ac.at.uibk.dps.dapr.bms.firedoor.FireDoorActorImpl
-import ac.at.uibk.dps.dapr.bms.gassafety.GasSafetyActorImpl
+import ac.at.uibk.dps.dapr.bms.gasSafety.GasSafetyActorImpl
 import ac.at.uibk.dps.dapr.bms.hvac.HvacActorImpl
 import ac.at.uibk.dps.dapr.bms.lighting.LightingActorImpl
+import ac.at.uibk.dps.dapr.bms.roomSchedule.RoomScheduleActorImpl
 import ac.at.uibk.dps.dapr.bms.roomoccupancy.RoomOccupancyActorImpl
-import ac.at.uibk.dps.dapr.bms.roomschedule.RoomScheduleActorImpl
 import ac.at.uibk.dps.dapr.bms.securityManager.SecurityManagerActorImpl
 import ac.at.uibk.dps.dapr.bms.shading.ShadingActorImpl
-import ac.at.uibk.dps.dapr.bms.tempsafety.TempSafetyActorImpl
+import ac.at.uibk.dps.dapr.bms.tempSafety.TempSafetyActorImpl
 import io.dapr.actors.runtime.ActorRuntime
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication

@@ -4,109 +4,108 @@ import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
-import jakarta.annotation.PostConstruct
+import io.dapr.client.domain.CloudEvent
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.ApplicationListener
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @ConditionalOnProperty("app.role", havingValue = "accessControl")
-class AccessControlSubscriber {
+class AccessControlSubscriber : ApplicationListener<ApplicationReadyEvent> {
 
   private val actorId = System.getenv("ACTOR_ID") ?: "accessControl-0"
-  private val actorClient = ActorClient()
   private val proxy: AccessControlActor =
-    ActorProxyBuilder(AccessControlActor::class.java, actorClient).build(ActorId(actorId))
+    ActorProxyBuilder(AccessControlActor::class.java, ActorClient()).build(ActorId(actorId))
 
-  @PostConstruct
-  fun initialize() {
+  override fun onApplicationEvent(event: ApplicationReadyEvent) {
     proxy.initialize()
   }
 
   @Topic(name = "authenticationRequest", pubsubName = "pubsub")
   @PostMapping("/authenticationRequest")
-  fun handleAuthRequest(@RequestBody body: Map<String, Any>) {
-    val data = body["data"] as? Map<*, *> ?: body
-    val cardId = data["cardId"] as? String ?: ""
+  fun handleAuthRequest(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    val cardId = event.data["cardId"] as? String ?: ""
     proxy.onAuthenticationRequest(cardId)
   }
 
   @Topic(name = "forceUnlockRequest", pubsubName = "pubsub")
   @PostMapping("/forceUnlockRequest")
-  fun handleForceUnlock(@RequestBody body: Map<String, Any>) {
+  fun handleForceUnlock() {
     proxy.onForceUnlockRequest()
   }
 
   @Topic(name = "physicalTamper", pubsubName = "pubsub")
   @PostMapping("/physicalTamper")
-  fun handlePhysicalTamper(@RequestBody body: Map<String, Any>) {
+  fun handlePhysicalTamper() {
     proxy.onPhysicalTamper()
   }
 
   @Topic(name = "doorForcedOpen", pubsubName = "pubsub")
   @PostMapping("/doorForcedOpen")
-  fun handleDoorForcedOpen(@RequestBody body: Map<String, Any>) {
+  fun handleDoorForcedOpen() {
     proxy.onDoorForcedOpen()
   }
 
   @Topic(name = "lockdownZone", pubsubName = "pubsub")
   @PostMapping("/lockdownZone")
-  fun handleLockdownZone(@RequestBody body: Map<String, Any>) {
+  fun handleLockdownZone() {
     proxy.onLockdownZone()
   }
 
   @Topic(name = "fireAlarm", pubsubName = "pubsub")
   @PostMapping("/fireAlarm")
-  fun handleFireAlarm(@RequestBody body: Map<String, Any>) {
+  fun handleFireAlarm() {
     proxy.onFireAlarm()
   }
 
   @Topic(name = "gasLeakDetected", pubsubName = "pubsub")
   @PostMapping("/gasLeakDetected")
-  fun handleGasLeakDetected(@RequestBody body: Map<String, Any>) {
+  fun handleGasLeakDetected() {
     proxy.onGasLeakDetected()
   }
 
   @Topic(name = "unlockAllEvacuationRoutes", pubsubName = "pubsub")
   @PostMapping("/unlockAllEvacuationRoutes")
-  fun handleUnlockEvacRoutes(@RequestBody body: Map<String, Any>) {
+  fun handleUnlockEvacRoutes() {
     proxy.onUnlockAllEvacuationRoutes()
   }
 
   @Topic(name = "clearSecurityAlert", pubsubName = "pubsub")
   @PostMapping("/clearSecurityAlert")
-  fun handleClearSecurityAlert(@RequestBody body: Map<String, Any>) {
+  fun handleClearSecurityAlert() {
     proxy.onClearSecurityAlert()
   }
 
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
-  fun handleDisarmFireAlarm(@RequestBody body: Map<String, Any>) {
+  fun handleDisarmFireAlarm() {
     proxy.onDisarmFireAlarm()
   }
 
   @Topic(name = "gasPurged", pubsubName = "pubsub")
   @PostMapping("/gasPurged")
-  fun handleGasPurged(@RequestBody body: Map<String, Any>) {
+  fun handleGasPurged() {
     proxy.onGasPurged()
   }
 
   @Topic(name = "enterBusinessHours", pubsubName = "pubsub")
   @PostMapping("/enterBusinessHours")
-  fun handleEnterBusinessHours(@RequestBody body: Map<String, Any>) {
+  fun handleEnterBusinessHours() {
     proxy.onEnterBusinessHours()
   }
 
   @Topic(name = "enterAfterHours", pubsubName = "pubsub")
   @PostMapping("/enterAfterHours")
-  fun handleEnterAfterHours(@RequestBody body: Map<String, Any>) {
+  fun handleEnterAfterHours() {
     proxy.onEnterAfterHours()
   }
 
   @Topic(name = "enterWeekend", pubsubName = "pubsub")
   @PostMapping("/enterWeekend")
-  fun handleEnterWeekend(@RequestBody body: Map<String, Any>) {
+  fun handleEnterWeekend() {
     proxy.onEnterWeekend()
   }
 }
