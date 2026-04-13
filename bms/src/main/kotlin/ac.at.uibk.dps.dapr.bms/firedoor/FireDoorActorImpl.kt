@@ -18,7 +18,7 @@ class FireDoorActorImpl(runtimeContext: ActorRuntimeContext<FireDoorActorImpl>, 
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
 
-  init {
+  override fun initialize() {
     service.openFireDoor(doorId)
   }
 

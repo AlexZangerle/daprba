@@ -4,6 +4,7 @@ import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
+import jakarta.annotation.PostConstruct
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -16,18 +17,23 @@ class FireDoorSubscriber {
 
   private val actorId = System.getenv("ACTOR_ID") ?: "fireDoor-0"
   private val actorClient = ActorClient()
-  private val fireDoorProxy: FireDoorActor =
+  private val proxy: FireDoorActor =
     ActorProxyBuilder(FireDoorActor::class.java, actorClient).build(ActorId(actorId))
+
+  @PostConstruct
+  fun initialize() {
+    proxy.initialize()
+  }
 
   @Topic(name = "fireAlarm", pubsubName = "pubsub")
   @PostMapping("/fireAlarm")
   fun handleFireAlarm(@RequestBody body: Map<String, Any>) {
-    fireDoorProxy.onFireAlarm()
+    proxy.onFireAlarm()
   }
 
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
   fun handleDisarmFireAlarm(@RequestBody body: Map<String, Any>) {
-    fireDoorProxy.onDisarmFireAlarm()
+    proxy.onDisarmFireAlarm()
   }
 }

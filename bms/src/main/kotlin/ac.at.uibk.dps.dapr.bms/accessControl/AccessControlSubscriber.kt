@@ -1,10 +1,10 @@
 package ac.at.uibk.dps.dapr.bms.accessControl
 
-import ac.at.uibk.dps.dapr.bms.accessControl.AccessControlActor
 import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
+import jakarta.annotation.PostConstruct
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -18,6 +18,11 @@ class AccessControlSubscriber {
   private val actorClient = ActorClient()
   private val proxy: AccessControlActor =
     ActorProxyBuilder(AccessControlActor::class.java, actorClient).build(ActorId(actorId))
+
+  @PostConstruct
+  fun initialize() {
+    proxy.initialize()
+  }
 
   @Topic(name = "authenticationRequest", pubsubName = "pubsub")
   @PostMapping("/authenticationRequest")

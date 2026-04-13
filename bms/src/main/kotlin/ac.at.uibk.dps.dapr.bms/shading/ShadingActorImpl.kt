@@ -33,7 +33,7 @@ class ShadingActorImpl(runtimeContext: ActorRuntimeContext<ShadingActorImpl>, ac
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var tempPollTimer: ScheduledFuture<*>? = null
 
-  init {
+  override fun initialize() {
     enterHalf()
   }
 

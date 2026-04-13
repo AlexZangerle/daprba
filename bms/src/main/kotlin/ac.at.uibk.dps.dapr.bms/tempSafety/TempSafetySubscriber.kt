@@ -4,6 +4,7 @@ import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
+import jakarta.annotation.PostConstruct
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -17,6 +18,11 @@ class TempSafetySubscriber {
   private val actorClient = ActorClient()
   private val proxy: TempSafetyActor =
     ActorProxyBuilder(TempSafetyActor::class.java, actorClient).build(ActorId(actorId))
+
+  @PostConstruct
+  fun initialize() {
+    proxy.initialize()
+  }
 
   @Topic(name = "tempRiskCleared", pubsubName = "pubsub")
   @PostMapping("/tempRiskCleared")

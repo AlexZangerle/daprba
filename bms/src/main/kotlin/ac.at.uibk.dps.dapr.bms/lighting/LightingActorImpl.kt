@@ -33,7 +33,7 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var flashTimer: ScheduledFuture<*>? = null
 
-  init {
+  override fun initialize() {
     service.turnOff(roomId)
   }
 

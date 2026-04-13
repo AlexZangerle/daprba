@@ -4,6 +4,7 @@ import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
+import jakarta.annotation.PostConstruct
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -17,6 +18,11 @@ class RoomScheduleSubscriber {
   private val actorClient = ActorClient()
   private val proxy: RoomScheduleActor =
     ActorProxyBuilder(RoomScheduleActor::class.java, actorClient).build(ActorId(actorId))
+
+  @PostConstruct
+  fun initialize() {
+    proxy.initialize()
+  }
 
   @Topic(name = "enterBusinessHours", pubsubName = "pubsub")
   @PostMapping("/enterBusinessHours")

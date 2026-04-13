@@ -5,6 +5,7 @@ import io.dapr.actors.ActorType
 /** Lighting actor interface. */
 @ActorType(name = "LightingActor")
 interface LightingActor {
+  fun initialize()
 
   // Occupancy events
   fun onOccupancyDetected()

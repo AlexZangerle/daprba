@@ -42,7 +42,7 @@ class AccessControlActorImpl(
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var timer: ScheduledFuture<*>? = null
 
-  init {
+  override fun initialize() {
     service.getDoorRouteType(doorId) { evacRoute, zone ->
       isEvacuationRoute = evacRoute
       zoneId = zone

@@ -32,7 +32,7 @@ class BuildingScheduleActorImpl(
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var scheduleTimer: ScheduledFuture<*>? = null
 
-  init {
+  override fun initialize() {
     enterEvaluating()
   }
 

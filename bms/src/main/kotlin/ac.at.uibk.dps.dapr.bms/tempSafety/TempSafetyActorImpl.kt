@@ -27,7 +27,7 @@ class TempSafetyActorImpl(
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var pollTimer: ScheduledFuture<*>? = null
 
-  init {
+  override fun initialize() {
     schedulePoll()
   }
 

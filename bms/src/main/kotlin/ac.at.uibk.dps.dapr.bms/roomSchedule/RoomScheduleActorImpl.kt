@@ -32,7 +32,7 @@ class RoomScheduleActorImpl(
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var timer: ScheduledFuture<*>? = null
 
-  init {
+  override fun initialize() {
     state = State.INIT
     service.initializeZone { enterInactive() }
   }

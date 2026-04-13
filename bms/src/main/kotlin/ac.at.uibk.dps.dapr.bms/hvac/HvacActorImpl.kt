@@ -39,7 +39,7 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
   private val scheduler = Executors.newSingleThreadScheduledExecutor()
   private var tempPollTimer: ScheduledFuture<*>? = null
 
-  init {
+  override fun initialize() {
     enterOff()
   }
 
