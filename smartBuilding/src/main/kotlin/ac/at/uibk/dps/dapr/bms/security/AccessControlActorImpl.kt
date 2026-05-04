@@ -47,7 +47,7 @@ class AccessControlActorImpl(
   }
 
   private fun cancelTimer() {
-    super.unregisterActorTimer("accessTimer").block()
+    super.unregisterTimer("accessTimer").subscribe()
   }
 
   private fun scheduleTimer(delayMs: Long) {
@@ -55,10 +55,11 @@ class AccessControlActorImpl(
     super.registerActorTimer(
         "accessTimer",
         "onAccessTimer",
+      ByteArray(0),
         Duration.ofMillis(delayMs),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   override fun onAccessTimer() {

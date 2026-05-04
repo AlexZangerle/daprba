@@ -38,14 +38,15 @@ class ShadingActorImpl(runtimeContext: ActorRuntimeContext<ShadingActorImpl>, ac
     super.registerActorTimer(
         "tempPollTimer",
         "onTempPollTimer",
+      ByteArray(0),
         Duration.ofMillis(60000),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   private fun cancelPoll() {
-    super.unregisterActorTimer("tempPollTimer").block()
+    super.unregisterTimer("tempPollTimer").subscribe()
   }
 
   override fun onTempPollTimer() {

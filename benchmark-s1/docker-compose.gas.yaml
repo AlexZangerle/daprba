@@ -1,0 +1,74 @@
+services:
+  redis:
+    image: redis:8-alpine
+    command: redis-server --save ""
+    ports: ["6379:6379"]
+
+  placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+
+  building-service:
+    build: building-service
+    ports: ["8005:8005"]
+    volumes:
+      - ./metricsGas:/metrics
+
+  # ── Gas safety (producer) ──
+
+  gas-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=gas-safety", "--app-port=3000",
+              "--app-channel-address=gas",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  gas:
+    image: smartbuildingtest:latest
+    environment:
+      ROLE: gasSafety
+      ACTOR_ID: gasSafety-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://gas-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://gas-sidecar:50001
+    depends_on: [building-service, gas-sidecar]
+
+  # ── HVAC (gas consumer) ──
+
+  hvac-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=hvac", "--app-port=3000",
+              "--app-channel-address=hvac",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  hvac:
+    image: smartbuildingtest:latest
+    environment:
+      ROLE: hvac
+      ACTOR_ID: hvac-0
+      ROOM_ID: Room 0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://hvac-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://hvac-sidecar:50001
+    depends_on: [building-service, hvac-sidecar]
+
+  # ── Simulation ──
+
+  simulation-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=simulation", "--app-port=3000",
+              "--app-channel-address=simulation",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  simulation:
+    build: simulation
+    volumes:
+      - ./metricsGas:/metrics
+    depends_on: [gas, hvac, simulation-sidecar]
+    command: ["--duration=900000", "--settle=100", "--metrics=/metrics",
+              "--circuit=gas", "--dapr-url=http://simulation-sidecar:3500"]

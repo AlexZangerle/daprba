@@ -34,7 +34,7 @@ class RoomOccupancyActorImpl(
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
 
   private fun cancelTimer() {
-    super.unregisterActorTimer("serviceTimeoutTimer").block()
+    super.unregisterTimer("serviceTimeoutTimer").subscribe()
   }
 
   override fun onServiceTimeoutTimer() {
@@ -91,10 +91,11 @@ class RoomOccupancyActorImpl(
       super.registerActorTimer(
           "serviceTimeoutTimer",
           "onServiceTimeoutTimer",
+        ByteArray(0),
           Duration.ofMillis(5000),
           Duration.ofMillis(-1),
         )
-        .block()
+        .subscribe()
     }
     service.detectOccupancy(imageData) { detected -> onDetectionDone(detected) }
   }

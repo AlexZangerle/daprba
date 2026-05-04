@@ -34,7 +34,7 @@ class RoomScheduleActorImpl(
   }
 
   private fun cancelTimer() {
-    super.unregisterActorTimer("roomTimer").block()
+    super.unregisterTimer("roomTimer").subscribe()
   }
 
   private fun scheduleTimer(delayMs: Long) {
@@ -42,10 +42,11 @@ class RoomScheduleActorImpl(
     super.registerActorTimer(
         "roomTimer",
         "onRoomTimer",
+      ByteArray(0),
         Duration.ofMillis(delayMs),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   override fun onRoomTimer() {

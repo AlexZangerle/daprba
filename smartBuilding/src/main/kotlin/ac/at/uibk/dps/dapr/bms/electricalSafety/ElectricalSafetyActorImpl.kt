@@ -1,6 +1,7 @@
-package ac.at.uibk.dps.dapr.bms.electricalsafety
+package ac.at.uibk.dps.dapr.bms.electricalSafety
 
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
+import ac.at.uibk.dps.dapr.bms.electricalsafety.ElectricalSafetyActor
 import io.dapr.actors.ActorId
 import io.dapr.actors.runtime.AbstractActor
 import io.dapr.actors.runtime.ActorRuntimeContext
@@ -33,14 +34,15 @@ class ElectricalSafetyActorImpl(
     super.registerActorTimer(
         "pollTimer",
         "onPollTimer",
+      ByteArray(0),
         Duration.ofMillis(1000),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   private fun cancelPoll() {
-    super.unregisterActorTimer("pollTimer").block()
+    super.unregisterTimer("pollTimer").subscribe()
   }
 
   override fun onPollTimer() {
@@ -65,7 +67,8 @@ class ElectricalSafetyActorImpl(
   private fun enterAcknowledged() {
     state = State.ACKNOWLEDGED
     arcFault = false
-    service.acknowledgedElectrical { enterMonitoring() }
+    service.acknowledgedElectrical()
+    enterMonitoring()
   }
 
   private fun enterMonitoring() {

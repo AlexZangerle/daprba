@@ -38,14 +38,15 @@ class EnergyManagementActorImpl(
     super.registerActorTimer(
         "pollTimer",
         "onPollTimer",
+      ByteArray(0),
         Duration.ofMillis(30000),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   private fun cancelPoll() {
-    super.unregisterActorTimer("pollTimer").block()
+    super.unregisterTimer("pollTimer").subscribe()
   }
 
   override fun onPollTimer() {
@@ -91,7 +92,6 @@ class EnergyManagementActorImpl(
   private fun enterNormal() {
     state = State.NORMAL
     daprClient.publishEvent("pubsub", "energyNormalMode", mapOf<String, Any>()).subscribe()
-    startEnergyCheck()
     schedulePoll()
   }
 

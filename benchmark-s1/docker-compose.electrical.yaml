@@ -1,0 +1,74 @@
+services:
+  redis:
+    image: redis:8-alpine
+    command: redis-server --save ""
+    ports: ["6379:6379"]
+
+  placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+
+  building-service:
+    build: building-service
+    ports: ["8005:8005"]
+    volumes:
+      - ./metricsElectrical:/metrics
+
+  # ── Electrical safety (producer) ──
+
+  electrical-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=electrical-safety", "--app-port=3000",
+              "--app-channel-address=electrical",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  electrical:
+    image: smartbuildingtest:latest
+    environment:
+      ROLE: electricalSafety
+      ACTOR_ID: electricalSafety-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://electrical-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://electrical-sidecar:50001
+    depends_on: [building-service, electrical-sidecar]
+
+  # ── Lighting (electrical consumer) ──
+
+  lighting-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=lighting", "--app-port=3000",
+              "--app-channel-address=lighting",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  lighting:
+    image: smartbuildingtest:latest
+    environment:
+      ROLE: lighting
+      ACTOR_ID: lighting-0
+      ROOM_ID: Room 0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://lighting-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://lighting-sidecar:50001
+    depends_on: [building-service, lighting-sidecar]
+
+  # ── Simulation ──
+
+  simulation-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=simulation", "--app-port=3000",
+              "--app-channel-address=simulation",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  simulation:
+    build: simulation
+    volumes:
+      - ./metricsElectrical:/metrics
+    depends_on: [electrical, lighting, simulation-sidecar]
+    command: ["--duration=900000", "--settle=100", "--metrics=/metrics",
+              "--circuit=electrical", "--dapr-url=http://simulation-sidecar:3500"]

@@ -2,7 +2,7 @@ package ac.at.uibk.dps.dapr.bms
 
 import ac.at.uibk.dps.dapr.bms.buildingSchedule.BuildingScheduleActorImpl
 import ac.at.uibk.dps.dapr.bms.buildingSchedule.RoomScheduleActorImpl
-import ac.at.uibk.dps.dapr.bms.electricalsafety.ElectricalSafetyActorImpl
+import ac.at.uibk.dps.dapr.bms.electricalSafety.ElectricalSafetyActorImpl
 import ac.at.uibk.dps.dapr.bms.energyManagement.EnergyManagementActorImpl
 import ac.at.uibk.dps.dapr.bms.fire.FireActorImpl
 import ac.at.uibk.dps.dapr.bms.fire.FireDoorActorImpl

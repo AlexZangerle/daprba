@@ -34,7 +34,7 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
   }
 
   private fun cancelFlash() {
-    super.unregisterActorTimer("flashTimer").block()
+    super.unregisterTimer("flashTimer").subscribe()
   }
 
   override fun onFlashTimer() {
@@ -80,10 +80,11 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
     super.registerActorTimer(
         "flashTimer",
         "onFlashTimer",
+      ByteArray(0),
         Duration.ofMillis(500),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   private fun enterFlashingOff() {
@@ -92,10 +93,11 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
     super.registerActorTimer(
         "flashTimer",
         "onFlashTimer",
+      ByteArray(0),
         Duration.ofMillis(1000),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   override fun onOccupancyDetected() {

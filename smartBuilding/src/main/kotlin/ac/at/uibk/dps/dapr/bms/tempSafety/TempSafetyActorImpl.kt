@@ -31,10 +31,11 @@ class TempSafetyActorImpl(
     super.registerActorTimer(
         "pollTimer",
         "onPollTimer",
+      ByteArray(0),
         Duration.ofMillis(30000),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   override fun onPollTimer() {
@@ -48,7 +49,7 @@ class TempSafetyActorImpl(
 
   private fun enterHighRisk() {
     state = State.HIGH_RISK
-    super.unregisterActorTimer("pollTimer").block()
+    super.unregisterTimer("pollTimer").subscribe()
     service.highRiskTemp(roomId)
   }
 

@@ -29,7 +29,7 @@ class SecurityManagerActorImpl(
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
 
   private fun cancelDecay() {
-    super.unregisterActorTimer("decayTimer").block()
+    super.unregisterTimer("decayTimer").subscribe()
   }
 
   override fun onDecayTimer() {
@@ -50,10 +50,11 @@ class SecurityManagerActorImpl(
     super.registerActorTimer(
         "decayTimer",
         "onDecayTimer",
+      ByteArray(0),
         Duration.ofMillis(1800000),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   private fun enterIntrusionAlert() {

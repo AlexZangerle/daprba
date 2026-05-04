@@ -148,7 +148,7 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
   fun tripCircuitBreaker(loc: String) =
     action("/tripCircuitBreaker", TripCircuitBreakerRequest(loc))
 
-  fun acknowledgedElectrical(cb: () -> Unit) = action("/electricalFaultAcknowledged")
+  fun acknowledgedElectrical() = action("/electricalFaultAcknowledged")
 
   // Gas Safety
   fun checkGasLeak(cb: (String) -> Unit) =

@@ -33,7 +33,7 @@ class BuildingScheduleActorImpl(
   }
 
   private fun cancelTimer() {
-    super.unregisterActorTimer("scheduleTimer").block()
+    super.unregisterTimer("scheduleTimer").subscribe()
   }
 
   private fun scheduleTimer(delayMs: Long) {
@@ -41,10 +41,11 @@ class BuildingScheduleActorImpl(
     super.registerActorTimer(
         "scheduleTimer",
         "onScheduleTimer",
+      ByteArray(0),
         Duration.ofMillis(delayMs),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   override fun onScheduleTimer() {

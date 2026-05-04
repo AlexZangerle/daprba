@@ -33,14 +33,15 @@ class GasSafetyActorImpl(
     super.registerActorTimer(
         "pollTimer",
         "onPollTimer",
+      ByteArray(0),
         Duration.ofMillis(1000),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   private fun cancelPoll() {
-    super.unregisterActorTimer("pollTimer").block()
+    super.unregisterTimer("pollTimer").subscribe()
   }
 
   override fun onPollTimer() {

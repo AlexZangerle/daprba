@@ -44,14 +44,15 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
     super.registerActorTimer(
         "tempPollTimer",
         "onTempPollTimer",
+      ByteArray(0),
         Duration.ofMillis(delayMs),
         Duration.ofMillis(-1),
       )
-      .block()
+      .subscribe()
   }
 
   private fun cancelPoll() {
-    super.unregisterActorTimer("tempPollTimer").block()
+    super.unregisterTimer("tempPollTimer").subscribe()
   }
 
   override fun onTempPollTimer() {
@@ -106,21 +107,18 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
     state = State.FAN_ONLY
     service.setHvac("fan", roomId)
     tempTolerance = defaultTolerance
-    pollTemp()
     schedulePoll(300000)
   }
 
   private fun enterHeating() {
     state = State.HEATING
     service.setHvac("heat", roomId)
-    pollTemp()
     schedulePoll(600000)
   }
 
   private fun enterCooling() {
     state = State.COOLING
     service.setHvac("cool", roomId)
-    pollTemp()
     schedulePoll(600000)
   }
 
@@ -128,7 +126,6 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
     state = State.ENERGY_SAVING
     service.setHvac("fan", roomId)
     tempTolerance = energySavingTolerance
-    pollTemp()
     schedulePoll(900000)
   }
 

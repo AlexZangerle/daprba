@@ -1,0 +1,96 @@
+services:
+  redis:
+    image: redis:8-alpine
+    command: redis-server --save ""
+    ports: ["6379:6379"]
+
+  placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+
+  building-service:
+    build: building-service
+    ports: ["8005:8005"]
+    volumes:
+      - ./results:/metrics
+
+  # ── Room occupancy (producer) ──
+
+  occupancy-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=room-occupancy", "--app-port=3000",
+              "--app-channel-address=occupancy",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  occupancy:
+    image: smartbuildingtest:latest
+    environment:
+      ROLE: roomOccupancy
+      ACTOR_ID: roomOccupancy-0
+      ROOM_ID: Room 0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://occupancy-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://occupancy-sidecar:50001
+    depends_on: [building-service, occupancy-sidecar]
+
+  # ── HVAC (consumer) ──
+
+  hvac-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=hvac", "--app-port=3000",
+              "--app-channel-address=hvac",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  hvac:
+    image: smartbuildingtest:latest
+    environment:
+      ROLE: hvac
+      ACTOR_ID: hvac-0
+      ROOM_ID: Room 0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://hvac-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://hvac-sidecar:50001
+    depends_on: [building-service, hvac-sidecar]
+
+  # ── Lighting (consumer) ──
+
+  lighting-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=lighting", "--app-port=3000",
+              "--app-channel-address=lighting",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  lighting:
+    image: smartbuildingtest:latest
+    environment:
+      ROLE: lighting
+      ACTOR_ID: lighting-0
+      ROOM_ID: Room 0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://lighting-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://lighting-sidecar:50001
+    depends_on: [building-service, lighting-sidecar]
+
+  # ── Simulation ──
+
+  simulation-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=simulation", "--app-port=3000",
+              "--app-channel-address=simulation",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+
+  simulation:
+    build: simulation
+    volumes:
+      - ./results:/metrics
+    depends_on: [occupancy, hvac, lighting, simulation-sidecar]
+    command: ["--duration=900000", "--interval=200", "--metrics=/metrics",
+              "--dapr-url=http://simulation-sidecar:3500"]
