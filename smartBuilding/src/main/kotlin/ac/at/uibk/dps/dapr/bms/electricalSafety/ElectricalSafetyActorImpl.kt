@@ -33,7 +33,7 @@ class ElectricalSafetyActorImpl(
     super.registerActorTimer(
         "pollTimer",
         "onPollTimer",
-        Duration.ofMillis(30000),
+        Duration.ofMillis(1000),
         Duration.ofMillis(-1),
       )
       .block()
