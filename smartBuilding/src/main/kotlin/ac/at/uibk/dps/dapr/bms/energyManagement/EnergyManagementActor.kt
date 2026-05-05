@@ -6,19 +6,19 @@ import io.dapr.actors.ActorType
 interface EnergyManagementActor {
   fun initialize()
 
-  fun onEnterBusinessHours()
+  fun onEnterBusinessHours(data: Map<String, Any>)
 
-  fun onEnterAfterHours()
+  fun onEnterAfterHours(data: Map<String, Any>)
 
-  fun onEnterWeekend()
+  fun onEnterWeekend(data: Map<String, Any>)
 
-  fun onFireAlarm()
+  fun onFireAlarm(data: Map<String, Any>)
 
-  fun onGasLeakDetected()
+  fun onGasLeakDetected(data: Map<String, Any>)
 
-  fun onDisarmFireAlarm()
+  fun onDisarmFireAlarm(data: Map<String, Any>)
 
-  fun onGasPurged()
+  fun onGasPurged(data: Map<String, Any>)
 
   fun onPollTimer()
 }

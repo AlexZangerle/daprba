@@ -6,7 +6,7 @@ import io.dapr.actors.ActorType
 interface TempSafetyActor {
   fun initialize()
 
-  fun onTempRiskCleared()
+  fun onTempRiskCleared(data: Map<String, Any>)
 
   fun onPollTimer()
 }

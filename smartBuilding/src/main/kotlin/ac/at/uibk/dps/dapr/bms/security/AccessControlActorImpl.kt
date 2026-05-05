@@ -1,11 +1,14 @@
 package ac.at.uibk.dps.dapr.bms.security
 
+import ac.at.uibk.dps.dapr.bms.BMS
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
 import io.dapr.actors.ActorId
 import io.dapr.actors.runtime.AbstractActor
 import io.dapr.actors.runtime.ActorRuntimeContext
 import io.dapr.client.DaprClientBuilder
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
 
 class AccessControlActorImpl(
   runtimeContext: ActorRuntimeContext<AccessControlActorImpl>,
@@ -38,6 +41,15 @@ class AccessControlActorImpl(
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
 
+  private val metricsRegistry = BMS.metricsRegistry
+
+  private fun measureEventTime(data: Map<String, Any>) {
+    val now = Clock.System.now()
+    val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    val deltaNanos = (nowNanos - data["time"] as Long).coerceAtLeast(0L)
+    metricsRegistry.timer("event.latency").update(deltaNanos, TimeUnit.NANOSECONDS)
+  }
+
   override fun initialize() {
     service.getDoorRouteType(doorId) { evacRoute, zone ->
       isEvacuationRoute = evacRoute
@@ -55,7 +67,7 @@ class AccessControlActorImpl(
     super.registerActorTimer(
         "accessTimer",
         "onAccessTimer",
-      ByteArray(0),
+        ByteArray(0),
         Duration.ofMillis(delayMs),
         Duration.ofMillis(-1),
       )
@@ -91,6 +103,8 @@ class AccessControlActorImpl(
       accessDecision = decision
       if (decision == "Allow") enterUnlocked()
       else {
+        val now = Clock.System.now()
+        val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
         daprClient
           .publishEvent(
             "pubsub",
@@ -100,6 +114,7 @@ class AccessControlActorImpl(
               "zoneId" to zoneId,
               "user" to userId,
               "reason" to "Access Rule Denied",
+              "time" to epochNanos,
             ),
           )
           .subscribe()
@@ -130,33 +145,46 @@ class AccessControlActorImpl(
   private fun enterForcedOpenAlarm() {
     state = State.FORCED_OPEN_ALARM
     cancelTimer()
+    val now = Clock.System.now()
+    val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
     daprClient
-      .publishEvent("pubsub", "forcedEntry", mapOf("doorId" to doorId, "zoneId" to zoneId))
+      .publishEvent(
+        "pubsub",
+        "forcedEntry",
+        mapOf("doorId" to doorId, "zoneId" to zoneId, "time" to epochNanos),
+      )
       .subscribe()
     service.controlDoorLock(doorId, "lock")
   }
 
-  override fun onAuthenticationRequest(cardId: String) {
+  override fun onAuthenticationRequest(data: Map<String, Any>) {
+    measureEventTime(data)
+    val cardId = data["cardId"] as? String ?: ""
     if (state == State.LOCKED) enterAuthenticating(cardId)
   }
 
-  override fun onForceUnlockRequest() {
+  override fun onForceUnlockRequest(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.LOCKED) enterUnlocked()
   }
 
-  override fun onPhysicalTamper() {
+  override fun onPhysicalTamper(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.LOCKED || state == State.UNLOCKED) enterForcedOpenAlarm()
   }
 
-  override fun onDoorForcedOpen() {
+  override fun onDoorForcedOpen(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.LOCKED || state == State.UNLOCKED) enterForcedOpenAlarm()
   }
 
-  override fun onLockdownZone() {
+  override fun onLockdownZone(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.UNLOCKED) enterLocked()
   }
 
-  override fun onFireAlarm() {
+  override fun onFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
     isFireAlarm = true
     if (
       state == State.LOCKED ||
@@ -168,44 +196,52 @@ class AccessControlActorImpl(
       enterEmergencyUnlock()
   }
 
-  override fun onGasLeakDetected() {
+  override fun onGasLeakDetected(data: Map<String, Any>) {
+    measureEventTime(data)
     isGasActive = true
     if (state == State.LOCKED && isEvacuationRoute) enterEmergencyUnlock()
   }
 
-  override fun onUnlockAllEvacuationRoutes() {
+  override fun onUnlockAllEvacuationRoutes(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.LOCKED && isEvacuationRoute) enterEmergencyUnlock()
   }
 
-  override fun onClearSecurityAlert() {
+  override fun onClearSecurityAlert(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.FORCED_OPEN_ALARM) enterLocked()
   }
 
-  override fun onDisarmFireAlarm() {
+  override fun onDisarmFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
     isFireAlarm = false
     if (state == State.EMERGENCY_UNLOCK && !isFireAlarm && !isGasActive) enterLocked()
   }
 
-  override fun onGasPurged() {
+  override fun onGasPurged(data: Map<String, Any>) {
+    measureEventTime(data)
     isGasActive = false
     if (state == State.EMERGENCY_UNLOCK && !isFireAlarm && !isGasActive) enterLocked()
   }
 
-  override fun onEnterBusinessHours() {
+  override fun onEnterBusinessHours(data: Map<String, Any>) {
+    measureEventTime(data)
     if (
       state == State.LOCKED || state == State.EMERGENCY_UNLOCK || state == State.FORCED_OPEN_ALARM
     )
       currentScheduleMode = "businessHours"
   }
 
-  override fun onEnterAfterHours() {
+  override fun onEnterAfterHours(data: Map<String, Any>) {
+    measureEventTime(data)
     if (
       state == State.LOCKED || state == State.EMERGENCY_UNLOCK || state == State.FORCED_OPEN_ALARM
     )
       currentScheduleMode = "afterHours"
   }
 
-  override fun onEnterWeekend() {
+  override fun onEnterWeekend(data: Map<String, Any>) {
+    measureEventTime(data)
     if (
       state == State.LOCKED || state == State.EMERGENCY_UNLOCK || state == State.FORCED_OPEN_ALARM
     )

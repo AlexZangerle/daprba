@@ -22,19 +22,18 @@ class RoomOccupancySubscriber {
   @Topic(name = "sensorOccupancyReceived", pubsubName = "pubsub")
   @PostMapping("/sensorOccupancyReceived")
   fun handleSensorData(@RequestBody event: CloudEvent<Map<String, Any>>) {
-    val imageData = event.data["imageData"] as? String ?: ""
-    proxy.onSensorOccupancyReceived(imageData)
+    proxy.onSensorOccupancyReceived(event.data)
   }
 
   @Topic(name = "energySavingMode", pubsubName = "pubsub")
   @PostMapping("/energySavingMode")
-  fun handleEnergySaving() {
-    proxy.onActivateEnergySaving()
+  fun handleEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onActivateEnergySaving(event.data)
   }
 
   @Topic(name = "maintenanceDone", pubsubName = "pubsub")
   @PostMapping("/maintenanceDone")
-  fun handleMaintenanceDone() {
-    proxy.onMaintenanceDone()
+  fun handleMaintenanceDone(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onMaintenanceDone(event.data)
   }
 }

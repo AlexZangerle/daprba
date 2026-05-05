@@ -1,10 +1,13 @@
 package ac.at.uibk.dps.dapr.bms.lighting
 
+import ac.at.uibk.dps.dapr.bms.BMS
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
 import io.dapr.actors.ActorId
 import io.dapr.actors.runtime.AbstractActor
 import io.dapr.actors.runtime.ActorRuntimeContext
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
 
 class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, actorId: ActorId) :
   AbstractActor(runtimeContext, actorId), LightingActor {
@@ -28,6 +31,15 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
   private var userLightLevel: Int = 0
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
+
+  private val metricsRegistry = BMS.metricsRegistry
+
+  private fun measureEventTime(data: Map<String, Any>) {
+    val now = Clock.System.now()
+    val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    val deltaNanos = (nowNanos - data["time"] as Long).coerceAtLeast(0L)
+    metricsRegistry.timer("event.latency").update(deltaNanos, TimeUnit.NANOSECONDS)
+  }
 
   override fun initialize() {
     service.turnOff(roomId)
@@ -80,7 +92,7 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
     super.registerActorTimer(
         "flashTimer",
         "onFlashTimer",
-      ByteArray(0),
+        ByteArray(0),
         Duration.ofMillis(500),
         Duration.ofMillis(-1),
       )
@@ -93,47 +105,57 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
     super.registerActorTimer(
         "flashTimer",
         "onFlashTimer",
-      ByteArray(0),
+        ByteArray(0),
         Duration.ofMillis(1000),
         Duration.ofMillis(-1),
       )
       .subscribe()
   }
 
-  override fun onOccupancyDetected() {
+  override fun onOccupancyDetected(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.OFF) {
       if (!isEnergySaving) enterOn() else enterDim()
     } else if (state == State.DIM && !isEnergySaving) enterOn()
   }
 
-  override fun onOccupancyTransient() {
+  override fun onOccupancyTransient(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.ON) enterDim()
   }
 
-  override fun onOccupancyVacant() {
+  override fun onOccupancyVacant(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.ON || state == State.DIM) enterOff()
   }
 
-  override fun onActivateLightUserLevel(lightLevel: Int) {
+  override fun onActivateLightUserLevel(data: Map<String, Any>) {
+    measureEventTime(data)
+    val lightLevel = (data["lightLevel"] as? Number)?.toInt() ?: 0
     if (state == State.OFF || state == State.ON || state == State.DIM) {
       userLightLevel = lightLevel
       enterUserLevel()
     }
   }
 
-  override fun onDeactivateLightUserLevel() {
+  override fun onDeactivateLightUserLevel(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.USER_LEVEL) enterOff()
   }
 
-  override fun onActivateEnergySaving() {
+  override fun onActivateEnergySaving(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.OFF || state == State.DIM) isEnergySaving = true
   }
 
-  override fun onDeactivateEnergySaving() {
+  override fun onDeactivateEnergySaving(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.OFF || state == State.DIM) isEnergySaving = false
   }
 
-  override fun onFireAlarm(emergencyInRoom: String) {
+  override fun onFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
+    val emergencyInRoom = data["emergencyInRoom"] as? String ?: "unknown"
     isFireAlarm = true
     when (state) {
       State.OFF,
@@ -149,7 +171,8 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
     }
   }
 
-  override fun onGasLeakDetected() {
+  override fun onGasLeakDetected(data: Map<String, Any>) {
+    measureEventTime(data)
     isGasActive = true
     when (state) {
       State.OFF,
@@ -165,7 +188,8 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
     }
   }
 
-  override fun onArcFaultDetected() {
+  override fun onArcFaultDetected(data: Map<String, Any>) {
+    measureEventTime(data)
     arcFault = true
     when (state) {
       State.OFF,
@@ -181,27 +205,32 @@ class LightingActorImpl(runtimeContext: ActorRuntimeContext<LightingActorImpl>, 
     }
   }
 
-  override fun onDisarmFireAlarm() {
+  override fun onDisarmFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
     isFireAlarm = false
     if (state == State.SAFETY_OFF && !isGasActive && !isFireAlarm && !arcFault) enterOff()
   }
 
-  override fun onGasPurged() {
+  override fun onGasPurged(data: Map<String, Any>) {
+    measureEventTime(data)
     isGasActive = false
     if (state == State.SAFETY_OFF && !isGasActive && !isFireAlarm && !arcFault) enterOff()
   }
 
-  override fun onResetElectricalFault() {
+  override fun onResetElectricalFault(data: Map<String, Any>) {
+    measureEventTime(data)
     arcFault = false
     if (state == State.SAFETY_OFF && !isGasActive && !isFireAlarm && !arcFault) enterOff()
   }
 
-  override fun onFlashAllLights() {
+  override fun onFlashAllLights(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.OFF || state == State.ON || state == State.DIM || state == State.USER_LEVEL)
       enterFlashingOn()
   }
 
-  override fun onClearSecurityAlert() {
+  override fun onClearSecurityAlert(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.FLASHING_ON || state == State.FLASHING_OFF) enterOff()
   }
 }

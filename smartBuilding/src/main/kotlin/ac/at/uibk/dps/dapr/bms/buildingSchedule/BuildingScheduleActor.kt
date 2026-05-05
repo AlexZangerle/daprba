@@ -6,13 +6,13 @@ import io.dapr.actors.ActorType
 interface BuildingScheduleActor {
   fun initialize()
 
-  fun onFireAlarm()
+  fun onFireAlarm(data: Map<String, Any>)
 
-  fun onGasLeakDetected()
+  fun onGasLeakDetected(data: Map<String, Any>)
 
-  fun onDisarmFireAlarm()
+  fun onDisarmFireAlarm(data: Map<String, Any>)
 
-  fun onGasPurged()
+  fun onGasPurged(data: Map<String, Any>)
 
   fun onScheduleTimer()
 }

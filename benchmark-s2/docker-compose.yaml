@@ -9,10 +9,11 @@ services:
     command: ./placement --port 50006
 
   building-service:
-    build: building-service
+    image: alexzangerle/buildingservice-dapr-s2:latest
+    pull_policy: always
     ports: ["8005:8005"]
     volumes:
-      - ./results:/metrics
+      - ./metrics:/metrics
 
   # ── Room occupancy (producer) ──
 
@@ -25,7 +26,8 @@ services:
     depends_on: [redis, placement]
 
   occupancy:
-    image: smartbuildingtest:latest
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
     environment:
       ROLE: roomOccupancy
       ACTOR_ID: roomOccupancy-0
@@ -33,6 +35,8 @@ services:
       BUILDING_SERVICE_URL: http://building-service:8005
       DAPR_HTTP_ENDPOINT: http://occupancy-sidecar:3500
       DAPR_GRPC_ENDPOINT: http://occupancy-sidecar:50001
+    volumes:
+      - ./metrics:/metrics
     depends_on: [building-service, occupancy-sidecar]
 
   # ── HVAC (consumer) ──
@@ -46,7 +50,8 @@ services:
     depends_on: [redis, placement]
 
   hvac:
-    image: smartbuildingtest:latest
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
     environment:
       ROLE: hvac
       ACTOR_ID: hvac-0
@@ -54,6 +59,8 @@ services:
       BUILDING_SERVICE_URL: http://building-service:8005
       DAPR_HTTP_ENDPOINT: http://hvac-sidecar:3500
       DAPR_GRPC_ENDPOINT: http://hvac-sidecar:50001
+    volumes:
+      - ./metrics:/metrics
     depends_on: [building-service, hvac-sidecar]
 
   # ── Lighting (consumer) ──
@@ -67,7 +74,8 @@ services:
     depends_on: [redis, placement]
 
   lighting:
-    image: smartbuildingtest:latest
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
     environment:
       ROLE: lighting
       ACTOR_ID: lighting-0
@@ -75,6 +83,8 @@ services:
       BUILDING_SERVICE_URL: http://building-service:8005
       DAPR_HTTP_ENDPOINT: http://lighting-sidecar:3500
       DAPR_GRPC_ENDPOINT: http://lighting-sidecar:50001
+    volumes:
+      - ./metrics:/metrics
     depends_on: [building-service, lighting-sidecar]
 
   # ── Simulation ──
@@ -88,9 +98,10 @@ services:
     depends_on: [redis, placement]
 
   simulation:
-    build: simulation
+    image: alexzangerle/simulation-dapr-s2:latest
+    pull_policy: always
     volumes:
-      - ./results:/metrics
+      - ./metrics:/metrics
     depends_on: [occupancy, hvac, lighting, simulation-sidecar]
     command: ["--duration=900000", "--interval=200", "--metrics=/metrics",
               "--dapr-url=http://simulation-sidecar:3500"]

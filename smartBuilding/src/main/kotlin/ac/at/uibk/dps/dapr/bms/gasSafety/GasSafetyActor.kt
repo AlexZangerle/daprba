@@ -6,7 +6,7 @@ import io.dapr.actors.ActorType
 interface GasSafetyActor {
   fun initialize()
 
-  fun onGasPurged()
+  fun onGasPurged(data: Map<String, Any>)
 
   fun onPollTimer()
 }

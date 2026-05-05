@@ -1,11 +1,14 @@
 package ac.at.uibk.dps.dapr.bms.buildingSchedule
 
+import ac.at.uibk.dps.dapr.bms.BMS
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
 import io.dapr.actors.ActorId
 import io.dapr.actors.runtime.AbstractActor
 import io.dapr.actors.runtime.ActorRuntimeContext
 import io.dapr.client.DaprClientBuilder
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
 
 class BuildingScheduleActorImpl(
   runtimeContext: ActorRuntimeContext<BuildingScheduleActorImpl>,
@@ -28,6 +31,8 @@ class BuildingScheduleActorImpl(
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
 
+  private val metricsRegistry = BMS.metricsRegistry
+
   override fun initialize() {
     enterEvaluating()
   }
@@ -41,7 +46,7 @@ class BuildingScheduleActorImpl(
     super.registerActorTimer(
         "scheduleTimer",
         "onScheduleTimer",
-      ByteArray(0),
+        ByteArray(0),
         Duration.ofMillis(delayMs),
         Duration.ofMillis(-1),
       )
@@ -67,19 +72,25 @@ class BuildingScheduleActorImpl(
 
   private fun enterBusinessHours() {
     state = State.BUSINESS_HOURS
-    daprClient.publishEvent("pubsub", "enterBusinessHours", mapOf<String, Any>()).subscribe()
+    val now = Clock.System.now()
+    val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    daprClient.publishEvent("pubsub", "enterBusinessHours", mapOf("time" to epochNanos)).subscribe()
     scheduleTimer(900000)
   }
 
   private fun enterAfterHours() {
     state = State.AFTER_HOURS
-    daprClient.publishEvent("pubsub", "enterAfterHours", mapOf<String, Any>()).subscribe()
+    val now = Clock.System.now()
+    val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    daprClient.publishEvent("pubsub", "enterAfterHours", mapOf("time" to epochNanos)).subscribe()
     scheduleTimer(900000)
   }
 
   private fun enterWeekendClosed() {
     state = State.WEEKEND_CLOSED
-    daprClient.publishEvent("pubsub", "enterWeekend", mapOf<String, Any>()).subscribe()
+    val now = Clock.System.now()
+    val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    daprClient.publishEvent("pubsub", "enterWeekend", mapOf("time" to epochNanos)).subscribe()
     scheduleTimer(7200000)
   }
 
@@ -88,22 +99,33 @@ class BuildingScheduleActorImpl(
     cancelTimer()
   }
 
-  override fun onFireAlarm() {
+  private fun measureEventTime(data: Map<String, Any>) {
+    val now = Clock.System.now()
+    val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    val deltaNanos = (nowNanos - data["time"] as Long).coerceAtLeast(0L)
+    metricsRegistry.timer("event.latency").update(deltaNanos, TimeUnit.NANOSECONDS)
+  }
+
+  override fun onFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
     fireAlarm = true
     if (state != State.EMERGENCY_OVERRIDE) enterEmergencyOverride()
   }
 
-  override fun onGasLeakDetected() {
+  override fun onGasLeakDetected(data: Map<String, Any>) {
+    measureEventTime(data)
     gasActive = true
     if (state != State.EMERGENCY_OVERRIDE) enterEmergencyOverride()
   }
 
-  override fun onDisarmFireAlarm() {
+  override fun onDisarmFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
     fireAlarm = false
     if (state == State.EMERGENCY_OVERRIDE && !fireAlarm && !gasActive) enterEvaluating()
   }
 
-  override fun onGasPurged() {
+  override fun onGasPurged(data: Map<String, Any>) {
+    measureEventTime(data)
     gasActive = false
     if (state == State.EMERGENCY_OVERRIDE && !fireAlarm && !gasActive) enterEvaluating()
   }

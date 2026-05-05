@@ -9,10 +9,11 @@ services:
     command: ./placement --port 50006
 
   building-service:
-    build: building-service
+    image: alexzangerle/buildingservice-dapr-s1:latest
+    pull_policy: always
     ports: ["8005:8005"]
     volumes:
-      - ./metricsElectrical:/metrics
+      - ./metricsElectrical2:/metrics
 
   # ── Electrical safety (producer) ──
 
@@ -25,13 +26,16 @@ services:
     depends_on: [redis, placement]
 
   electrical:
-    image: smartbuildingtest:latest
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
     environment:
       ROLE: electricalSafety
       ACTOR_ID: electricalSafety-0
       BUILDING_SERVICE_URL: http://building-service:8005
       DAPR_HTTP_ENDPOINT: http://electrical-sidecar:3500
       DAPR_GRPC_ENDPOINT: http://electrical-sidecar:50001
+    volumes:
+      - ./metricsElectrical3:/metrics
     depends_on: [building-service, electrical-sidecar]
 
   # ── Lighting (electrical consumer) ──
@@ -45,7 +49,8 @@ services:
     depends_on: [redis, placement]
 
   lighting:
-    image: smartbuildingtest:latest
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
     environment:
       ROLE: lighting
       ACTOR_ID: lighting-0
@@ -53,6 +58,8 @@ services:
       BUILDING_SERVICE_URL: http://building-service:8005
       DAPR_HTTP_ENDPOINT: http://lighting-sidecar:3500
       DAPR_GRPC_ENDPOINT: http://lighting-sidecar:50001
+    volumes:
+      - ./metricsElectrical2:/metrics
     depends_on: [building-service, lighting-sidecar]
 
   # ── Simulation ──
@@ -66,9 +73,10 @@ services:
     depends_on: [redis, placement]
 
   simulation:
-    build: simulation
+    image: alexzangerle/simulation-dapr-s1:latest
+    pull_policy: always
     volumes:
-      - ./metricsElectrical:/metrics
+      - ./metricsElectrical2:/metrics
     depends_on: [electrical, lighting, simulation-sidecar]
     command: ["--duration=900000", "--settle=100", "--metrics=/metrics",
               "--circuit=electrical", "--dapr-url=http://simulation-sidecar:3500"]

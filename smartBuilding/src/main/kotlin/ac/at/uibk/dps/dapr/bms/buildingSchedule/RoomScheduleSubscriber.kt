@@ -4,10 +4,12 @@ import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
+import io.dapr.client.domain.CloudEvent
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -24,55 +26,55 @@ class RoomScheduleSubscriber : ApplicationListener<ApplicationReadyEvent> {
 
   @Topic(name = "enterBusinessHours", pubsubName = "pubsub")
   @PostMapping("/enterBusinessHours")
-  fun handleEnterBusinessHours() {
-    proxy.onEnterBusinessHours()
+  fun handleEnterBusinessHours(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnterBusinessHours(event.data)
   }
 
   @Topic(name = "enterAfterHours", pubsubName = "pubsub")
   @PostMapping("/enterAfterHours")
-  fun handleEnterAfterHours() {
-    proxy.onEnterAfterHours()
+  fun handleEnterAfterHours(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnterAfterHours(event.data)
   }
 
   @Topic(name = "enterWeekend", pubsubName = "pubsub")
   @PostMapping("/enterWeekend")
-  fun handleEnterWeekend() {
-    proxy.onEnterWeekend()
+  fun handleEnterWeekend(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnterWeekend(event.data)
   }
 
   @Topic(name = "requestStay", pubsubName = "pubsub")
   @PostMapping("/requestStay")
-  fun handleRequestStay() {
-    proxy.onRequestStay()
+  fun handleRequestStay(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onRequestStay(event.data)
   }
 
   @Topic(name = "userLeftZone", pubsubName = "pubsub")
   @PostMapping("/userLeftZone")
-  fun handleUserLeftZone() {
-    proxy.onUserLeftZone()
+  fun handleUserLeftZone(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onUserLeftZone(event.data)
   }
 
   @Topic(name = "fireAlarm", pubsubName = "pubsub")
   @PostMapping("/fireAlarm")
-  fun handleFireAlarm() {
-    proxy.onFireAlarm()
+  fun handleFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onFireAlarm(event.data)
   }
 
   @Topic(name = "gasLeakDetected", pubsubName = "pubsub")
   @PostMapping("/gasLeakDetected")
-  fun handleGasLeakDetected() {
-    proxy.onGasLeakDetected()
+  fun handleGasLeakDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasLeakDetected(event.data)
   }
 
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
-  fun handleDisarmFireAlarm() {
-    proxy.onDisarmFireAlarm()
+  fun handleDisarmFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDisarmFireAlarm(event.data)
   }
 
   @Topic(name = "gasPurged", pubsubName = "pubsub")
   @PostMapping("/gasPurged")
-  fun handleGasPurged() {
-    proxy.onGasPurged()
+  fun handleGasPurged(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasPurged(event.data)
   }
 }

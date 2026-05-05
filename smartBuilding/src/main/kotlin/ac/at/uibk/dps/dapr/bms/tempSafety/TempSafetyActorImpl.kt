@@ -1,10 +1,13 @@
 package ac.at.uibk.dps.dapr.bms.tempSafety
 
+import ac.at.uibk.dps.dapr.bms.BMS
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
 import io.dapr.actors.ActorId
 import io.dapr.actors.runtime.AbstractActor
 import io.dapr.actors.runtime.ActorRuntimeContext
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
 
 class TempSafetyActorImpl(
   runtimeContext: ActorRuntimeContext<TempSafetyActorImpl>,
@@ -23,6 +26,15 @@ class TempSafetyActorImpl(
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
 
+  private val metricsRegistry = BMS.metricsRegistry
+
+  private fun measureEventTime(data: Map<String, Any>) {
+    val now = Clock.System.now()
+    val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    val deltaNanos = (nowNanos - data["time"] as Long).coerceAtLeast(0L)
+    metricsRegistry.timer("event.latency").update(deltaNanos, TimeUnit.NANOSECONDS)
+  }
+
   override fun initialize() {
     schedulePoll()
   }
@@ -31,7 +43,7 @@ class TempSafetyActorImpl(
     super.registerActorTimer(
         "pollTimer",
         "onPollTimer",
-      ByteArray(0),
+        ByteArray(0),
         Duration.ofMillis(30000),
         Duration.ofMillis(-1),
       )
@@ -53,7 +65,8 @@ class TempSafetyActorImpl(
     service.highRiskTemp(roomId)
   }
 
-  override fun onTempRiskCleared() {
+  override fun onTempRiskCleared(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.HIGH_RISK) {
       state = State.MONITORING
       schedulePoll()

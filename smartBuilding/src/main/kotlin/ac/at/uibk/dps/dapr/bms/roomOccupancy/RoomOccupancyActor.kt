@@ -4,11 +4,11 @@ import io.dapr.actors.ActorType
 
 @ActorType(name = "RoomOccupancyActor")
 interface RoomOccupancyActor {
-  fun onSensorOccupancyReceived(imageData: String)
+  fun onSensorOccupancyReceived(data: Map<String, Any>)
 
-  fun onActivateEnergySaving()
+  fun onActivateEnergySaving(data: Map<String, Any>)
 
-  fun onMaintenanceDone()
+  fun onMaintenanceDone(data: Map<String, Any>)
 
   fun onServiceTimeoutTimer()
 }

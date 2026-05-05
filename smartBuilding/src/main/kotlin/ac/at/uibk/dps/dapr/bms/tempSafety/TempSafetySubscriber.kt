@@ -4,10 +4,12 @@ import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
+import io.dapr.client.domain.CloudEvent
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -24,7 +26,7 @@ class TempSafetySubscriber : ApplicationListener<ApplicationReadyEvent> {
 
   @Topic(name = "tempRiskCleared", pubsubName = "pubsub")
   @PostMapping("/tempRiskCleared")
-  fun handleTempRiskCleared() {
-    proxy.onTempRiskCleared()
+  fun handleTempRiskCleared(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onTempRiskCleared(event.data)
   }
 }

@@ -20,55 +20,55 @@ class SecurityManagerSubscriber {
 
   @Topic(name = "forcedEntry", pubsubName = "pubsub")
   @PostMapping("/forcedEntry")
-  fun handleForcedEntry(@RequestBody event: CloudEvent<Map<String, String>>) {
+  fun handleForcedEntry(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onForcedEntry(event.data)
   }
 
   @Topic(name = "tamperDetected", pubsubName = "pubsub")
   @PostMapping("/tamperDetected")
-  fun handleTamperDetected(@RequestBody event: CloudEvent<Map<String, String>>) {
+  fun handleTamperDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onTamperDetected(event.data)
   }
 
   @Topic(name = "manualSecurityAlert", pubsubName = "pubsub")
   @PostMapping("/manualSecurityAlert")
-  fun handleManualSecurityAlert() {
-    proxy.onManualSecurityAlert()
+  fun handleManualSecurityAlert(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onManualSecurityAlert(event.data)
   }
 
   @Topic(name = "accessDenied", pubsubName = "pubsub")
   @PostMapping("/accessDenied")
-  fun handleAccessDenied(@RequestBody event: CloudEvent<Map<String, String>>) {
+  fun handleAccessDenied(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onAccessDenied(event.data)
   }
 
   @Topic(name = "clearSecurityAlert", pubsubName = "pubsub")
   @PostMapping("/clearSecurityAlert")
-  fun handleClearSecurityAlert() {
-    proxy.onClearSecurityAlert()
+  fun handleClearSecurityAlert(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onClearSecurityAlert(event.data)
   }
 
   @Topic(name = "fireAlarm", pubsubName = "pubsub")
   @PostMapping("/fireAlarm")
-  fun handleFireAlarm() {
-    proxy.onFireAlarm()
+  fun handleFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onFireAlarm(event.data)
   }
 
   @Topic(name = "gasLeakDetected", pubsubName = "pubsub")
   @PostMapping("/gasLeakDetected")
-  fun handleGasLeakDetected() {
-    proxy.onGasLeakDetected()
+  fun handleGasLeakDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasLeakDetected(event.data)
   }
 
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
-  fun handleDisarmFireAlarm() {
-    proxy.onDisarmFireAlarm()
+  fun handleDisarmFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDisarmFireAlarm(event.data)
   }
 
   @Topic(name = "gasPurged", pubsubName = "pubsub")
   @PostMapping("/gasPurged")
-  fun handleGasPurged() {
-    proxy.onGasPurged()
+  fun handleGasPurged(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasPurged(event.data)
   }
 }

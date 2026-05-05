@@ -7,7 +7,7 @@ import io.dapr.actors.ActorType
 interface FireDoorActor {
   fun initialize()
 
-  fun onFireAlarm()
+  fun onFireAlarm(data: Map<String, Any>)
 
-  fun onDisarmFireAlarm()
+  fun onDisarmFireAlarm(data: Map<String, Any>)
 }

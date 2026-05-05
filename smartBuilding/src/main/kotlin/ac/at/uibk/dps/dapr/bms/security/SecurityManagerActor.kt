@@ -4,23 +4,23 @@ import io.dapr.actors.ActorType
 
 @ActorType(name = "SecurityManagerActor")
 interface SecurityManagerActor {
-  fun onForcedEntry(data: Map<String, String>)
+  fun onForcedEntry(data: Map<String, Any>)
 
-  fun onTamperDetected(data: Map<String, String>)
+  fun onTamperDetected(data: Map<String, Any>)
 
-  fun onManualSecurityAlert()
+  fun onManualSecurityAlert(data: Map<String, Any>)
 
-  fun onAccessDenied(data: Map<String, String>)
+  fun onAccessDenied(data: Map<String, Any>)
 
-  fun onClearSecurityAlert()
+  fun onClearSecurityAlert(data: Map<String, Any>)
 
-  fun onFireAlarm()
+  fun onFireAlarm(data: Map<String, Any>)
 
-  fun onGasLeakDetected()
+  fun onGasLeakDetected(data: Map<String, Any>)
 
-  fun onDisarmFireAlarm()
+  fun onDisarmFireAlarm(data: Map<String, Any>)
 
-  fun onGasPurged()
+  fun onGasPurged(data: Map<String, Any>)
 
   fun onDecayTimer()
 }

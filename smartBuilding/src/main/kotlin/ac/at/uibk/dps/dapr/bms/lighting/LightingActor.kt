@@ -6,35 +6,35 @@ import io.dapr.actors.ActorType
 interface LightingActor {
   fun initialize()
 
-  fun onOccupancyDetected()
+  fun onOccupancyDetected(data: Map<String, Any>)
 
-  fun onOccupancyTransient()
+  fun onOccupancyTransient(data: Map<String, Any>)
 
-  fun onOccupancyVacant()
+  fun onOccupancyVacant(data: Map<String, Any>)
 
-  fun onActivateLightUserLevel(lightLevel: Int)
+  fun onActivateLightUserLevel(data: Map<String, Any>)
 
-  fun onDeactivateLightUserLevel()
+  fun onDeactivateLightUserLevel(data: Map<String, Any>)
 
-  fun onActivateEnergySaving()
+  fun onActivateEnergySaving(data: Map<String, Any>)
 
-  fun onDeactivateEnergySaving()
+  fun onDeactivateEnergySaving(data: Map<String, Any>)
 
-  fun onFireAlarm(emergencyInRoom: String)
+  fun onFireAlarm(data: Map<String, Any>)
 
-  fun onGasLeakDetected()
+  fun onGasLeakDetected(data: Map<String, Any>)
 
-  fun onArcFaultDetected()
+  fun onArcFaultDetected(data: Map<String, Any>)
 
-  fun onDisarmFireAlarm()
+  fun onDisarmFireAlarm(data: Map<String, Any>)
 
-  fun onGasPurged()
+  fun onGasPurged(data: Map<String, Any>)
 
-  fun onResetElectricalFault()
+  fun onResetElectricalFault(data: Map<String, Any>)
 
-  fun onFlashAllLights()
+  fun onFlashAllLights(data: Map<String, Any>)
 
-  fun onClearSecurityAlert()
+  fun onClearSecurityAlert(data: Map<String, Any>)
 
   fun onFlashTimer()
 }

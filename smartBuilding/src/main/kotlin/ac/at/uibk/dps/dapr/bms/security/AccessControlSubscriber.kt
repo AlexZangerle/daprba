@@ -27,85 +27,84 @@ class AccessControlSubscriber : ApplicationListener<ApplicationReadyEvent> {
   @Topic(name = "authenticationRequest", pubsubName = "pubsub")
   @PostMapping("/authenticationRequest")
   fun handleAuthRequest(@RequestBody event: CloudEvent<Map<String, Any>>) {
-    val cardId = event.data["cardId"] as? String ?: ""
-    proxy.onAuthenticationRequest(cardId)
+    proxy.onAuthenticationRequest(event.data)
   }
 
   @Topic(name = "forceUnlockRequest", pubsubName = "pubsub")
   @PostMapping("/forceUnlockRequest")
-  fun handleForceUnlock() {
-    proxy.onForceUnlockRequest()
+  fun handleForceUnlock(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onForceUnlockRequest(event.data)
   }
 
   @Topic(name = "physicalTamper", pubsubName = "pubsub")
   @PostMapping("/physicalTamper")
-  fun handlePhysicalTamper() {
-    proxy.onPhysicalTamper()
+  fun handlePhysicalTamper(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onPhysicalTamper(event.data)
   }
 
   @Topic(name = "doorForcedOpen", pubsubName = "pubsub")
   @PostMapping("/doorForcedOpen")
-  fun handleDoorForcedOpen() {
-    proxy.onDoorForcedOpen()
+  fun handleDoorForcedOpen(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDoorForcedOpen(event.data)
   }
 
   @Topic(name = "lockdownZone", pubsubName = "pubsub")
   @PostMapping("/lockdownZone")
-  fun handleLockdownZone() {
-    proxy.onLockdownZone()
+  fun handleLockdownZone(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onLockdownZone(event.data)
   }
 
   @Topic(name = "fireAlarm", pubsubName = "pubsub")
   @PostMapping("/fireAlarm")
-  fun handleFireAlarm() {
-    proxy.onFireAlarm()
+  fun handleFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onFireAlarm(event.data)
   }
 
   @Topic(name = "gasLeakDetected", pubsubName = "pubsub")
   @PostMapping("/gasLeakDetected")
-  fun handleGasLeakDetected() {
-    proxy.onGasLeakDetected()
+  fun handleGasLeakDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasLeakDetected(event.data)
   }
 
   @Topic(name = "unlockAllEvacuationRoutes", pubsubName = "pubsub")
   @PostMapping("/unlockAllEvacuationRoutes")
-  fun handleUnlockEvacRoutes() {
-    proxy.onUnlockAllEvacuationRoutes()
+  fun handleUnlockEvacRoutes(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onUnlockAllEvacuationRoutes(event.data)
   }
 
   @Topic(name = "clearSecurityAlert", pubsubName = "pubsub")
   @PostMapping("/clearSecurityAlert")
-  fun handleClearSecurityAlert() {
-    proxy.onClearSecurityAlert()
+  fun handleClearSecurityAlert(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onClearSecurityAlert(event.data)
   }
 
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
-  fun handleDisarmFireAlarm() {
-    proxy.onDisarmFireAlarm()
+  fun handleDisarmFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDisarmFireAlarm(event.data)
   }
 
   @Topic(name = "gasPurged", pubsubName = "pubsub")
   @PostMapping("/gasPurged")
-  fun handleGasPurged() {
-    proxy.onGasPurged()
+  fun handleGasPurged(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasPurged(event.data)
   }
 
   @Topic(name = "enterBusinessHours", pubsubName = "pubsub")
   @PostMapping("/enterBusinessHours")
-  fun handleEnterBusinessHours() {
-    proxy.onEnterBusinessHours()
+  fun handleEnterBusinessHours(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnterBusinessHours(event.data)
   }
 
   @Topic(name = "enterAfterHours", pubsubName = "pubsub")
   @PostMapping("/enterAfterHours")
-  fun handleEnterAfterHours() {
-    proxy.onEnterAfterHours()
+  fun handleEnterAfterHours(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnterAfterHours(event.data)
   }
 
   @Topic(name = "enterWeekend", pubsubName = "pubsub")
   @PostMapping("/enterWeekend")
-  fun handleEnterWeekend() {
-    proxy.onEnterWeekend()
+  fun handleEnterWeekend(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnterWeekend(event.data)
   }
 }

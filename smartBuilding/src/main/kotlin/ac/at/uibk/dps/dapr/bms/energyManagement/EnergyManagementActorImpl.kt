@@ -1,11 +1,14 @@
 package ac.at.uibk.dps.dapr.bms.energyManagement
 
+import ac.at.uibk.dps.dapr.bms.BMS
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
 import io.dapr.actors.ActorId
 import io.dapr.actors.runtime.AbstractActor
 import io.dapr.actors.runtime.ActorRuntimeContext
 import io.dapr.client.DaprClientBuilder
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
 
 class EnergyManagementActorImpl(
   runtimeContext: ActorRuntimeContext<EnergyManagementActorImpl>,
@@ -29,6 +32,15 @@ class EnergyManagementActorImpl(
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
 
+  private val metricsRegistry = BMS.metricsRegistry
+
+  private fun measureEventTime(data: Map<String, Any>) {
+    val now = Clock.System.now()
+    val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    val deltaNanos = (nowNanos - data["time"] as Long).coerceAtLeast(0L)
+    metricsRegistry.timer("event.latency").update(deltaNanos, TimeUnit.NANOSECONDS)
+  }
+
   override fun initialize() {
     enterNormal()
   }
@@ -38,7 +50,7 @@ class EnergyManagementActorImpl(
     super.registerActorTimer(
         "pollTimer",
         "onPollTimer",
-      ByteArray(0),
+        ByteArray(0),
         Duration.ofMillis(30000),
         Duration.ofMillis(-1),
       )
@@ -91,58 +103,75 @@ class EnergyManagementActorImpl(
 
   private fun enterNormal() {
     state = State.NORMAL
-    daprClient.publishEvent("pubsub", "energyNormalMode", mapOf<String, Any>()).subscribe()
+    val now = Clock.System.now()
+    val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    daprClient.publishEvent("pubsub", "energyNormalMode", mapOf("time" to epochNanos)).subscribe()
     schedulePoll()
   }
 
   private fun enterPeak() {
     state = State.PEAK
-    daprClient.publishEvent("pubsub", "energySavingMode", mapOf<String, Any>()).subscribe()
+    val now = Clock.System.now()
+    val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    daprClient.publishEvent("pubsub", "energySavingMode", mapOf("time" to epochNanos)).subscribe()
     schedulePoll()
   }
 
   private fun enterGridResponse() {
     state = State.GRID_RESPONSE
-    daprClient.publishEvent("pubsub", "drasticEnergySaving", mapOf<String, Any>()).subscribe()
+    val now = Clock.System.now()
+    val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    daprClient
+      .publishEvent("pubsub", "drasticEnergySaving", mapOf("time" to epochNanos))
+      .subscribe()
     schedulePoll()
   }
 
   private fun enterSafetyLockout() {
     state = State.SAFETY_LOCKOUT
     cancelPoll()
-    daprClient.publishEvent("pubsub", "energyNormalMode", mapOf<String, Any>()).subscribe()
+    val now = Clock.System.now()
+    val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    daprClient.publishEvent("pubsub", "energyNormalMode", mapOf("time" to epochNanos)).subscribe()
   }
 
   private fun enterGasShutdown() {
     state = State.GAS_SHUTDOWN
     cancelPoll()
-    daprClient.publishEvent("pubsub", "energyShutdown", mapOf<String, Any>()).subscribe()
+    val now = Clock.System.now()
+    val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    daprClient.publishEvent("pubsub", "energyShutdown", mapOf("time" to epochNanos)).subscribe()
   }
 
-  override fun onEnterBusinessHours() {
+  override fun onEnterBusinessHours(data: Map<String, Any>) {
+    measureEventTime(data)
     currentScheduleMode = "businessHours"
     if (state == State.NORMAL || state == State.PEAK || state == State.GRID_RESPONSE)
       startEnergyCheck()
   }
 
-  override fun onEnterAfterHours() {
+  override fun onEnterAfterHours(data: Map<String, Any>) {
+    measureEventTime(data)
     currentScheduleMode = "afterHours"
     if (state == State.NORMAL || state == State.PEAK || state == State.GRID_RESPONSE)
       startEnergyCheck()
   }
 
-  override fun onEnterWeekend() {
+  override fun onEnterWeekend(data: Map<String, Any>) {
+    measureEventTime(data)
     currentScheduleMode = "weekend"
     if (state == State.NORMAL || state == State.PEAK || state == State.GRID_RESPONSE)
       startEnergyCheck()
   }
 
-  override fun onFireAlarm() {
+  override fun onFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.NORMAL || state == State.PEAK || state == State.GRID_RESPONSE)
       enterSafetyLockout()
   }
 
-  override fun onGasLeakDetected() {
+  override fun onGasLeakDetected(data: Map<String, Any>) {
+    measureEventTime(data)
     if (
       state == State.NORMAL ||
         state == State.PEAK ||
@@ -152,11 +181,13 @@ class EnergyManagementActorImpl(
       enterGasShutdown()
   }
 
-  override fun onDisarmFireAlarm() {
+  override fun onDisarmFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.SAFETY_LOCKOUT) enterNormal()
   }
 
-  override fun onGasPurged() {
+  override fun onGasPurged(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.GAS_SHUTDOWN) enterNormal()
   }
 }

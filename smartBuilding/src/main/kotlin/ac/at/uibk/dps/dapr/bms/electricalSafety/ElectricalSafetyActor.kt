@@ -6,7 +6,7 @@ import io.dapr.actors.ActorType
 interface ElectricalSafetyActor {
   fun initialize()
 
-  fun onResetElectricalFault()
+  fun onResetElectricalFault(data: Map<String, Any>)
 
   fun onPollTimer()
 }

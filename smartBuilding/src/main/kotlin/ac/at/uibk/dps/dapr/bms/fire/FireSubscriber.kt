@@ -22,20 +22,18 @@ class FireSubscriber {
   @Topic(name = "sensorFireDataReceived", pubsubName = "pubsub")
   @PostMapping("/sensorFireDataReceived")
   fun handleSensorFireData(@RequestBody event: CloudEvent<Map<String, Any>>) {
-    val imageData = event.data["imageData"] as? String ?: ""
-    val zoneId = event.data["zoneId"] as? String ?: "Room 0"
-    fireProxy.onSensorFireDataReceived(mapOf("imageData" to imageData, "zoneId" to zoneId))
+    fireProxy.onSensorFireDataReceived(event.data)
   }
 
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
-  fun handleDisarmFireAlarm() {
-    fireProxy.onDisarmFireAlarm()
+  fun handleDisarmFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    fireProxy.onDisarmFireAlarm(event.data)
   }
 
   @Topic(name = "disarmSmokeAlert", pubsubName = "pubsub")
   @PostMapping("/disarmSmokeAlert")
-  fun handleDisarmSmokeAlert() {
-    fireProxy.onDisarmSmokeAlert()
+  fun handleDisarmSmokeAlert(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    fireProxy.onDisarmSmokeAlert(event.data)
   }
 }

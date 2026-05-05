@@ -1,10 +1,13 @@
 package ac.at.uibk.dps.dapr.bms.hvac
 
+import ac.at.uibk.dps.dapr.bms.BMS
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
 import io.dapr.actors.ActorId
 import io.dapr.actors.runtime.AbstractActor
 import io.dapr.actors.runtime.ActorRuntimeContext
 import java.time.Duration
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
 
 class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId: ActorId) :
   AbstractActor(runtimeContext, actorId), HvacActor {
@@ -35,6 +38,15 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
 
+  private val metricsRegistry = BMS.metricsRegistry
+
+  private fun measureEventTime(data: Map<String, Any>) {
+    val now = Clock.System.now()
+    val nowNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
+    val deltaNanos = (nowNanos - data["time"] as Long).coerceAtLeast(0L)
+    metricsRegistry.timer("event.latency").update(deltaNanos, TimeUnit.NANOSECONDS)
+  }
+
   override fun initialize() {
     enterOff()
   }
@@ -44,7 +56,7 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
     super.registerActorTimer(
         "tempPollTimer",
         "onTempPollTimer",
-      ByteArray(0),
+        ByteArray(0),
         Duration.ofMillis(delayMs),
         Duration.ofMillis(-1),
       )
@@ -137,11 +149,13 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
     tempTolerance = defaultTolerance
   }
 
-  override fun onOccupancyDetected() {
+  override fun onOccupancyDetected(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.OFF) enterFanOnly()
   }
 
-  override fun onOccupancyVacant() {
+  override fun onOccupancyVacant(data: Map<String, Any>) {
+    measureEventTime(data)
     if (
       state == State.FAN_ONLY ||
         state == State.HEATING ||
@@ -151,11 +165,13 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
       enterOff()
   }
 
-  override fun onZoneActive() {
+  override fun onZoneActive(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.OFF) enterFanOnly()
   }
 
-  override fun onZoneInactive() {
+  override fun onZoneInactive(data: Map<String, Any>) {
+    measureEventTime(data)
     if (
       state == State.FAN_ONLY ||
         state == State.HEATING ||
@@ -165,79 +181,94 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
       enterOff()
   }
 
-  override fun onEnterBusinessHours() {
+  override fun onEnterBusinessHours(data: Map<String, Any>) {
+    measureEventTime(data)
     desiredTemp = businessHoursTemp
     if (state == State.FAN_ONLY || state == State.HEATING || state == State.COOLING) pollTemp()
   }
 
-  override fun onEnterAfterHours() {
+  override fun onEnterAfterHours(data: Map<String, Any>) {
+    measureEventTime(data)
     desiredTemp = afterHoursTemp
     if (state == State.FAN_ONLY || state == State.HEATING || state == State.COOLING) pollTemp()
   }
 
-  override fun onEnterWeekend() {
+  override fun onEnterWeekend(data: Map<String, Any>) {
+    measureEventTime(data)
     desiredTemp = afterHoursTemp
     if (state == State.FAN_ONLY || state == State.HEATING || state == State.COOLING) pollTemp()
   }
 
-  override fun onActivateEnergySaving() {
+  override fun onActivateEnergySaving(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.FAN_ONLY || state == State.HEATING || state == State.COOLING)
       enterEnergySaving()
   }
 
-  override fun onDrasticEnergySaving() {
+  override fun onDrasticEnergySaving(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.FAN_ONLY || state == State.HEATING || state == State.COOLING)
       enterEnergySaving()
     else if (state == State.ENERGY_SAVING) drasticSaving = true
   }
 
-  override fun onDeactivateEnergySaving() {
+  override fun onDeactivateEnergySaving(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state == State.ENERGY_SAVING) enterFanOnly()
   }
 
-  override fun onEnergyShutdown() {
+  override fun onEnergyShutdown(data: Map<String, Any>) {
+    measureEventTime(data)
     if (state != State.EMERGENCY) enterEmergency()
   }
 
-  override fun onFireAlarm() {
+  override fun onFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
     isFireAlarm = true
     if (state != State.EMERGENCY) enterEmergency()
   }
 
-  override fun onGasLeakDetected() {
+  override fun onGasLeakDetected(data: Map<String, Any>) {
+    measureEventTime(data)
     isGasActive = true
     if (state != State.EMERGENCY) enterEmergency()
   }
 
-  override fun onSmokeAlert() {
+  override fun onSmokeAlert(data: Map<String, Any>) {
+    measureEventTime(data)
     isSmokeAlert = true
     if (state != State.EMERGENCY) enterEmergency()
   }
 
-  override fun onArcFaultDetected() {
+  override fun onArcFaultDetected(data: Map<String, Any>) {
+    measureEventTime(data)
     arcFault = true
     if (state != State.EMERGENCY) enterEmergency()
   }
 
-  override fun onDisarmFireAlarm() {
+  override fun onDisarmFireAlarm(data: Map<String, Any>) {
+    measureEventTime(data)
     isFireAlarm = false
     if (state == State.EMERGENCY && !isFireAlarm && !isGasActive && !isSmokeAlert && !arcFault)
       enterOff()
   }
 
-  override fun onGasPurged() {
+  override fun onGasPurged(data: Map<String, Any>) {
+    measureEventTime(data)
     isGasActive = false
     if (state == State.EMERGENCY && !isFireAlarm && !isGasActive && !isSmokeAlert && !arcFault)
       enterOff()
   }
 
-  override fun onDisarmSmokeAlert() {
+  override fun onDisarmSmokeAlert(data: Map<String, Any>) {
+    measureEventTime(data)
     isSmokeAlert = false
     if (state == State.EMERGENCY && !isFireAlarm && !isGasActive && !isSmokeAlert && !arcFault)
       enterOff()
   }
 
-  override fun onResetElectricalFault() {
+  override fun onResetElectricalFault(data: Map<String, Any>) {
+    measureEventTime(data)
     arcFault = false
     if (state == State.EMERGENCY && !isFireAlarm && !isGasActive && !isSmokeAlert && !arcFault)
       enterOff()

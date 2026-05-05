@@ -6,37 +6,37 @@ import io.dapr.actors.ActorType
 interface ShadingActor {
   fun initialize()
 
-  fun onActivateBlindsUserLevel(blindLevel: Int)
+  fun onActivateBlindsUserLevel(data: Map<String, Any>)
 
-  fun onDeactivateBlindsUserLevel()
+  fun onDeactivateBlindsUserLevel(data: Map<String, Any>)
 
-  fun onLockBlinds()
+  fun onLockBlinds(data: Map<String, Any>)
 
-  fun onUnlockBlinds()
+  fun onUnlockBlinds(data: Map<String, Any>)
 
-  fun onZoneActive()
+  fun onZoneActive(data: Map<String, Any>)
 
-  fun onZoneInactive()
+  fun onZoneInactive(data: Map<String, Any>)
 
-  fun onLockdownZone()
+  fun onLockdownZone(data: Map<String, Any>)
 
-  fun onFireAlarm()
+  fun onFireAlarm(data: Map<String, Any>)
 
-  fun onSmokeAlert()
+  fun onSmokeAlert(data: Map<String, Any>)
 
-  fun onGasLeakDetected()
+  fun onGasLeakDetected(data: Map<String, Any>)
 
-  fun onArcFaultDetected()
+  fun onArcFaultDetected(data: Map<String, Any>)
 
-  fun onDisarmFireAlarm()
+  fun onDisarmFireAlarm(data: Map<String, Any>)
 
-  fun onGasPurged()
+  fun onGasPurged(data: Map<String, Any>)
 
-  fun onDisarmSmokeAlert()
+  fun onDisarmSmokeAlert(data: Map<String, Any>)
 
-  fun onResetElectricalFault()
+  fun onResetElectricalFault(data: Map<String, Any>)
 
-  fun onClearSecurityAlert()
+  fun onClearSecurityAlert(data: Map<String, Any>)
 
   fun onTempPollTimer()
 }

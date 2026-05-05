@@ -6,43 +6,43 @@ import io.dapr.actors.ActorType
 interface HvacActor {
   fun initialize()
 
-  fun onOccupancyDetected()
+  fun onOccupancyDetected(data: Map<String, Any>)
 
-  fun onOccupancyVacant()
+  fun onOccupancyVacant(data: Map<String, Any>)
 
-  fun onZoneActive()
+  fun onZoneActive(data: Map<String, Any>)
 
-  fun onZoneInactive()
+  fun onZoneInactive(data: Map<String, Any>)
 
-  fun onEnterBusinessHours()
+  fun onEnterBusinessHours(data: Map<String, Any>)
 
-  fun onEnterAfterHours()
+  fun onEnterAfterHours(data: Map<String, Any>)
 
-  fun onEnterWeekend()
+  fun onEnterWeekend(data: Map<String, Any>)
 
-  fun onActivateEnergySaving()
+  fun onActivateEnergySaving(data: Map<String, Any>)
 
-  fun onDrasticEnergySaving()
+  fun onDrasticEnergySaving(data: Map<String, Any>)
 
-  fun onDeactivateEnergySaving()
+  fun onDeactivateEnergySaving(data: Map<String, Any>)
 
-  fun onEnergyShutdown()
+  fun onEnergyShutdown(data: Map<String, Any>)
 
-  fun onFireAlarm()
+  fun onFireAlarm(data: Map<String, Any>)
 
-  fun onGasLeakDetected()
+  fun onGasLeakDetected(data: Map<String, Any>)
 
-  fun onSmokeAlert()
+  fun onSmokeAlert(data: Map<String, Any>)
 
-  fun onArcFaultDetected()
+  fun onArcFaultDetected(data: Map<String, Any>)
 
-  fun onDisarmFireAlarm()
+  fun onDisarmFireAlarm(data: Map<String, Any>)
 
-  fun onGasPurged()
+  fun onGasPurged(data: Map<String, Any>)
 
-  fun onDisarmSmokeAlert()
+  fun onDisarmSmokeAlert(data: Map<String, Any>)
 
-  fun onResetElectricalFault()
+  fun onResetElectricalFault(data: Map<String, Any>)
 
   fun onTempPollTimer()
 }

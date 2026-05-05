@@ -1,14 +1,14 @@
 package ac.at.uibk.dps.dapr.bms
 
 import ac.at.uibk.dps.dapr.bms.bindings.*
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 import org.apache.fory.Fory
 import org.apache.fory.ThreadSafeFory
 import org.apache.fory.config.Language
 import org.apache.fory.memory.MemoryBuffer
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 
 class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005") {
 
@@ -170,7 +170,7 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
   fun getScheduleMode(cb: (String) -> Unit) =
     query<ScheduleModeResponse>("/getScheduleMode") { cb(it.currentSchedule) }
 
-  fun initializeZone(cb: () -> Unit) = action("/initializeZone")
+  fun initializeZone() = action("/initializeZone")
 
   // Energy
   fun getEnergyPrice(cb: (Double) -> Unit) =

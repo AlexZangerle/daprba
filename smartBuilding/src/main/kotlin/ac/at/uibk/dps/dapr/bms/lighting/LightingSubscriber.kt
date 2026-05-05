@@ -25,101 +25,93 @@ class LightingSubscriber : ApplicationListener<ApplicationReadyEvent> {
     proxy.initialize()
   }
 
-  // Occupancy events
   @Topic(name = "occupancyDetectedEvent", pubsubName = "pubsub")
   @PostMapping("/occupancyDetectedEvent")
-  fun handleOccupancyDetected() {
-    proxy.onOccupancyDetected()
+  fun handleOccupancyDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onOccupancyDetected(event.data)
   }
 
   @Topic(name = "occupancyTransient", pubsubName = "pubsub")
   @PostMapping("/occupancyTransient")
-  fun handleOccupancyTransient() {
-    proxy.onOccupancyTransient()
+  fun handleOccupancyTransient(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onOccupancyTransient(event.data)
   }
 
   @Topic(name = "eOccupancyVacant", pubsubName = "pubsub")
   @PostMapping("/eOccupancyVacant")
-  fun handleOccupancyVacant() {
-    proxy.onOccupancyVacant()
+  fun handleOccupancyVacant(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onOccupancyVacant(event.data)
   }
 
-  // User control events
   @Topic(name = "userLevelLight", pubsubName = "pubsub")
   @PostMapping("/userLevelLight")
   fun handleUserLevelLight(@RequestBody event: CloudEvent<Map<String, Any>>) {
-    val lightLevel = (event.data["lightLevel"] as? Number)?.toInt() ?: 0
-    proxy.onActivateLightUserLevel(lightLevel)
+    proxy.onActivateLightUserLevel(event.data)
   }
 
   @Topic(name = "occupancyLight", pubsubName = "pubsub")
   @PostMapping("/occupancyLight")
-  fun handleDeactivateLightUserLevel() {
-    proxy.onDeactivateLightUserLevel()
+  fun handleDeactivateLightUserLevel(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDeactivateLightUserLevel(event.data)
   }
 
-  // Energy events
   @Topic(name = "energySavingMode", pubsubName = "pubsub")
   @PostMapping("/energySavingMode")
-  fun handleActivateEnergySaving() {
-    proxy.onActivateEnergySaving()
+  fun handleActivateEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onActivateEnergySaving(event.data)
   }
 
   @Topic(name = "energyNormalMode", pubsubName = "pubsub")
   @PostMapping("/energyNormalMode")
-  fun handleDeactivateEnergySaving() {
-    proxy.onDeactivateEnergySaving()
+  fun handleDeactivateEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDeactivateEnergySaving(event.data)
   }
 
-  // Safety events
   @Topic(name = "fireAlarm", pubsubName = "pubsub")
   @PostMapping("/fireAlarm")
   fun handleFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
-    val emergencyInRoom = event.data["emergencyInRoom"] as? String ?: "unknown"
-    proxy.onFireAlarm(emergencyInRoom)
+    proxy.onFireAlarm(event.data)
   }
 
   @Topic(name = "gasLeakDetected", pubsubName = "pubsub")
   @PostMapping("/gasLeakDetected")
-  fun handleGasLeakDetected() {
-    proxy.onGasLeakDetected()
+  fun handleGasLeakDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasLeakDetected(event.data)
   }
 
   @Topic(name = "arcFaultDetected", pubsubName = "pubsub")
   @PostMapping("/arcFaultDetected")
-  fun handleArcFaultDetected() {
-    proxy.onArcFaultDetected()
+  fun handleArcFaultDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onArcFaultDetected(event.data)
   }
 
-  // Safety recovery events
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
-  fun handleDisarmFireAlarm() {
-    proxy.onDisarmFireAlarm()
+  fun handleDisarmFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDisarmFireAlarm(event.data)
   }
 
   @Topic(name = "gasPurged", pubsubName = "pubsub")
   @PostMapping("/gasPurged")
-  fun handleGasPurged() {
-    proxy.onGasPurged()
+  fun handleGasPurged(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasPurged(event.data)
   }
 
   @Topic(name = "electricalReset", pubsubName = "pubsub")
   @PostMapping("/electricalReset")
-  fun handleResetElectricalFault() {
-    proxy.onResetElectricalFault()
+  fun handleResetElectricalFault(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onResetElectricalFault(event.data)
   }
 
-  // Security events
   @Topic(name = "flashAllLights", pubsubName = "pubsub")
   @PostMapping("/flashAllLights")
-  fun handleFlashAllLights() {
-    proxy.onFlashAllLights()
+  fun handleFlashAllLights(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onFlashAllLights(event.data)
   }
 
   @Topic(name = "clearSecurityAlert", pubsubName = "pubsub")
   @PostMapping("/clearSecurityAlert")
-  fun handleClearSecurityAlert() {
-    proxy.onClearSecurityAlert()
+  fun handleClearSecurityAlert(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onClearSecurityAlert(event.data)
   }
 }

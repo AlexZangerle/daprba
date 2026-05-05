@@ -4,10 +4,12 @@ import io.dapr.Topic
 import io.dapr.actors.ActorId
 import io.dapr.actors.client.ActorClient
 import io.dapr.actors.client.ActorProxyBuilder
+import io.dapr.client.domain.CloudEvent
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.ApplicationListener
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 
 /** Pub/sub subscriber for the HVAC actor. */
@@ -23,123 +25,117 @@ class HvacSubscriber : ApplicationListener<ApplicationReadyEvent> {
     proxy.initialize()
   }
 
-  // Occupancy events
   @Topic(name = "occupancyDetectedEvent", pubsubName = "pubsub")
   @PostMapping("/occupancyDetectedEvent")
-  fun handleOccupancyDetected() {
-    proxy.onOccupancyDetected()
+  fun handleOccupancyDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onOccupancyDetected(event.data)
   }
 
   @Topic(name = "eOccupancyVacant", pubsubName = "pubsub")
   @PostMapping("/eOccupancyVacant")
-  fun handleOccupancyVacant() {
-    proxy.onOccupancyVacant()
+  fun handleOccupancyVacant(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onOccupancyVacant(event.data)
   }
 
-  // Zone events
   @Topic(name = "zoneActive", pubsubName = "pubsub")
   @PostMapping("/zoneActive")
-  fun handleZoneActive() {
-    proxy.onZoneActive()
+  fun handleZoneActive(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onZoneActive(event.data)
   }
 
   @Topic(name = "zoneInactive", pubsubName = "pubsub")
   @PostMapping("/zoneInactive")
-  fun handleZoneInactive() {
-    proxy.onZoneInactive()
+  fun handleZoneInactive(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onZoneInactive(event.data)
   }
 
-  // Schedule events
   @Topic(name = "enterBusinessHours", pubsubName = "pubsub")
   @PostMapping("/enterBusinessHours")
-  fun handleEnterBusinessHours() {
-    proxy.onEnterBusinessHours()
+  fun handleEnterBusinessHours(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnterBusinessHours(event.data)
   }
 
   @Topic(name = "enterAfterHours", pubsubName = "pubsub")
   @PostMapping("/enterAfterHours")
-  fun handleEnterAfterHours() {
-    proxy.onEnterAfterHours()
+  fun handleEnterAfterHours(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnterAfterHours(event.data)
   }
 
   @Topic(name = "enterWeekend", pubsubName = "pubsub")
   @PostMapping("/enterWeekend")
-  fun handleEnterWeekend() {
-    proxy.onEnterWeekend()
+  fun handleEnterWeekend(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnterWeekend(event.data)
   }
 
-  // Energy events
   @Topic(name = "energySavingMode", pubsubName = "pubsub")
   @PostMapping("/energySavingMode")
-  fun handleActivateEnergySaving() {
-    proxy.onActivateEnergySaving()
+  fun handleActivateEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onActivateEnergySaving(event.data)
   }
 
   @Topic(name = "drasticEnergySaving", pubsubName = "pubsub")
   @PostMapping("/drasticEnergySaving")
-  fun handleDrasticEnergySaving() {
-    proxy.onDrasticEnergySaving()
+  fun handleDrasticEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDrasticEnergySaving(event.data)
   }
 
   @Topic(name = "energyNormalMode", pubsubName = "pubsub")
   @PostMapping("/energyNormalMode")
-  fun handleDeactivateEnergySaving() {
-    proxy.onDeactivateEnergySaving()
+  fun handleDeactivateEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDeactivateEnergySaving(event.data)
   }
 
   @Topic(name = "energyShutdown", pubsubName = "pubsub")
   @PostMapping("/energyShutdown")
-  fun handleEnergyShutdown() {
-    proxy.onEnergyShutdown()
+  fun handleEnergyShutdown(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onEnergyShutdown(event.data)
   }
 
-  // Safety events
   @Topic(name = "fireAlarm", pubsubName = "pubsub")
   @PostMapping("/fireAlarm")
-  fun handleFireAlarm() {
-    proxy.onFireAlarm()
+  fun handleFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onFireAlarm(event.data)
   }
 
   @Topic(name = "gasLeakDetected", pubsubName = "pubsub")
   @PostMapping("/gasLeakDetected")
-  fun handleGasLeakDetected() {
-    proxy.onGasLeakDetected()
+  fun handleGasLeakDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasLeakDetected(event.data)
   }
 
   @Topic(name = "smokeAlert", pubsubName = "pubsub")
   @PostMapping("/smokeAlert")
-  fun handleSmokeAlert() {
-    proxy.onSmokeAlert()
+  fun handleSmokeAlert(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onSmokeAlert(event.data)
   }
 
   @Topic(name = "arcFaultDetected", pubsubName = "pubsub")
   @PostMapping("/arcFaultDetected")
-  fun handleArcFaultDetected() {
-    proxy.onArcFaultDetected()
+  fun handleArcFaultDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onArcFaultDetected(event.data)
   }
 
-  // Safety recovery events
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
-  fun handleDisarmFireAlarm() {
-    proxy.onDisarmFireAlarm()
+  fun handleDisarmFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDisarmFireAlarm(event.data)
   }
 
   @Topic(name = "gasPurged", pubsubName = "pubsub")
   @PostMapping("/gasPurged")
-  fun handleGasPurged() {
-    proxy.onGasPurged()
+  fun handleGasPurged(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasPurged(event.data)
   }
 
   @Topic(name = "disarmSmokeAlert", pubsubName = "pubsub")
   @PostMapping("/disarmSmokeAlert")
-  fun handleDisarmSmokeAlert() {
-    proxy.onDisarmSmokeAlert()
+  fun handleDisarmSmokeAlert(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onDisarmSmokeAlert(event.data)
   }
 
   @Topic(name = "electricalReset", pubsubName = "pubsub")
   @PostMapping("/electricalReset")
-  fun handleResetElectricalFault() {
-    proxy.onResetElectricalFault()
+  fun handleResetElectricalFault(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onResetElectricalFault(event.data)
   }
 }
