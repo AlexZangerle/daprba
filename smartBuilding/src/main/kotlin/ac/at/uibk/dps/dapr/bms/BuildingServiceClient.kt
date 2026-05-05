@@ -1,14 +1,15 @@
 package ac.at.uibk.dps.dapr.bms
 
 import ac.at.uibk.dps.dapr.bms.bindings.*
-import org.apache.fory.Fory
-import org.apache.fory.ThreadSafeFory
-import org.apache.fory.config.Language
-import org.apache.fory.memory.MemoryBuffer
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import org.apache.fory.Fory
+import org.apache.fory.ThreadSafeFory
+import org.apache.fory.config.Language
+import org.apache.fory.memory.MemoryBuffer
+import java.util.concurrent.TimeUnit
 
 class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005") {
 
@@ -67,6 +68,8 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
 
   private fun <T> execute(path: String, req: Any, resClass: Class<T>?, cb: ((T) -> Unit)?) {
     try {
+      val start = System.nanoTime()
+
       val buffer = threadBuffer.get().apply { writerIndex(0) }
       fory.serialize(buffer, req)
 
@@ -85,6 +88,9 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
         } else {
           println("  [SERVICE ERROR] $path -> Status: ${res.statusCode()}")
         }
+        BMS.metricsRegistry
+          .timer("invoke.time")
+          .update(System.nanoTime() - start, TimeUnit.NANOSECONDS)
       }
     } catch (e: Exception) {
       println("  [SERVICE ERROR] $path: ${e.message}")
