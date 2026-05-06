@@ -17,7 +17,7 @@ class FireDoorActorImpl(runtimeContext: ActorRuntimeContext<FireDoorActorImpl>, 
   }
 
   private var state: State = State.OPEN
-  private val doorId: String = System.getenv("DOOR_ID") ?: "Door 0"
+  private val doorId: String = "Door ${actorId.toString().removePrefix("fireDoor-")}"
   private val service =
     BuildingServiceClient(System.getenv("BUILDING_SERVICE_URL") ?: "http://localhost:8005")
 

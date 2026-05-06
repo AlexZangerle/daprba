@@ -17,23 +17,26 @@ import org.springframework.web.bind.annotation.RestController
 @ConditionalOnProperty("app.role", havingValue = "fireDoor")
 class FireDoorSubscriber : ApplicationListener<ApplicationReadyEvent> {
 
-  private val actorId = System.getenv("ACTOR_ID") ?: "fireDoor-0"
-  private val proxy: FireDoorActor =
-    ActorProxyBuilder(FireDoorActor::class.java, ActorClient()).build(ActorId(actorId))
+  private val doorIds = (System.getenv("DOOR_IDS") ?: "0").split(",").map { it.trim() }
+
+  private val proxies: List<FireDoorActor> = doorIds.map { id ->
+    ActorProxyBuilder(FireDoorActor::class.java, ActorClient())
+      .build(ActorId("fireDoor-$id"))
+  }
 
   override fun onApplicationEvent(event: ApplicationReadyEvent) {
-    proxy.initialize()
+    proxies.forEach { it.initialize() }
   }
 
   @Topic(name = "fireAlarm", pubsubName = "pubsub")
   @PostMapping("/fireAlarm")
   fun handleFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
-    proxy.onFireAlarm(event.data)
+    proxies.forEach { it.onFireAlarm(event.data) }
   }
 
   @Topic(name = "disarmFireAlarm", pubsubName = "pubsub")
   @PostMapping("/disarmFireAlarm")
   fun handleDisarmFireAlarm(@RequestBody event: CloudEvent<Map<String, Any>>) {
-    proxy.onDisarmFireAlarm(event.data)
+    proxies.forEach { it.onDisarmFireAlarm(event.data) }
   }
 }
