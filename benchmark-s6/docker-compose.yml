@@ -1,0 +1,310 @@
+services:
+  redis:
+    image: redis:8-alpine
+    command: redis-server --save ""
+    ports: ["6379:6379"]
+  placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+  building-service:
+    build: building-service
+    ports: ["8005:8005"]
+    volumes:
+      - ./metrics/building-service:/metrics
+  # --- buildingSchedule ---
+  buildingSchedule-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=buildingSchedule", "--app-port=3000",
+              "--app-channel-address=buildingSchedule",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  buildingSchedule:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: buildingSchedule
+      ACTOR_ID: buildingSchedule-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://buildingSchedule-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://buildingSchedule-sidecar:50001
+    volumes: ["./metrics/buildingSchedule:/metrics"]
+    depends_on: [building-service, buildingSchedule-sidecar]
+  # --- roomSchedule ---
+  roomSchedule-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=roomSchedule", "--app-port=3000",
+              "--app-channel-address=roomSchedule",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  roomSchedule:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: roomSchedule
+      ACTOR_ID: roomSchedule-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://roomSchedule-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://roomSchedule-sidecar:50001
+    volumes: ["./metrics/roomSchedule:/metrics"]
+    depends_on: [building-service, roomSchedule-sidecar]
+  # --- electricalSafety ---
+  electricalSafety-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=electricalSafety", "--app-port=3000",
+              "--app-channel-address=electricalSafety",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  electricalSafety:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: electricalSafety
+      ACTOR_ID: electricalSafety-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://electricalSafety-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://electricalSafety-sidecar:50001
+    volumes: ["./metrics/electricalSafety:/metrics"]
+    depends_on: [building-service, electricalSafety-sidecar]
+  # --- energyManagement ---
+  energyManagement-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=energyManagement", "--app-port=3000",
+              "--app-channel-address=energyManagement",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  energyManagement:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: energyManagement
+      ACTOR_ID: energyManagement-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://energyManagement-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://energyManagement-sidecar:50001
+    volumes: ["./metrics/energyManagement:/metrics"]
+    depends_on: [building-service, energyManagement-sidecar]
+  # --- fire ---
+  fire-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=fire", "--app-port=3000",
+              "--app-channel-address=fire",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  fire:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: fire
+      ACTOR_ID: fire-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://fire-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://fire-sidecar:50001
+    volumes: ["./metrics/fire:/metrics"]
+    depends_on: [building-service, fire-sidecar]
+  # --- fireDoor ---
+  fireDoor-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=fireDoor", "--app-port=3000",
+              "--app-channel-address=fireDoor",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  fireDoor:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: fireDoor
+      DOOR_IDS: "0"
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://fireDoor-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://fireDoor-sidecar:50001
+    volumes: ["./metrics/fireDoor:/metrics"]
+    depends_on: [building-service, fireDoor-sidecar]
+  # --- gasSafety ---
+  gasSafety-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=gasSafety", "--app-port=3000",
+              "--app-channel-address=gasSafety",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  gasSafety:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: gasSafety
+      ACTOR_ID: gasSafety-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://gasSafety-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://gasSafety-sidecar:50001
+    volumes: ["./metrics/gasSafety:/metrics"]
+    depends_on: [building-service, gasSafety-sidecar]
+  # --- hvac ---
+  hvac-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=hvac", "--app-port=3000",
+              "--app-channel-address=hvac",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  hvac:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: hvac
+      ACTOR_ID: hvac-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://hvac-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://hvac-sidecar:50001
+    volumes: ["./metrics/hvac:/metrics"]
+    depends_on: [building-service, hvac-sidecar]
+  # --- lighting ---
+  lighting-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=lighting", "--app-port=3000",
+              "--app-channel-address=lighting",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  lighting:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: lighting
+      ACTOR_ID: lighting-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://lighting-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://lighting-sidecar:50001
+    volumes: ["./metrics/lighting:/metrics"]
+    depends_on: [building-service, lighting-sidecar]
+  # --- roomOccupancy ---
+  roomOccupancy-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=roomOccupancy", "--app-port=3000",
+              "--app-channel-address=roomOccupancy",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  roomOccupancy:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: roomOccupancy
+      ACTOR_ID: roomOccupancy-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://roomOccupancy-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://roomOccupancy-sidecar:50001
+    volumes: ["./metrics/roomOccupancy:/metrics"]
+    depends_on: [building-service, roomOccupancy-sidecar]
+  # --- securityManager ---
+  securityManager-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=securityManager", "--app-port=3000",
+              "--app-channel-address=securityManager",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  securityManager:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: securityManager
+      ACTOR_ID: securityManager-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://securityManager-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://securityManager-sidecar:50001
+    volumes: ["./metrics/securityManager:/metrics"]
+    depends_on: [building-service, securityManager-sidecar]
+  # --- accessControl ---
+  accessControl-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=accessControl", "--app-port=3000",
+              "--app-channel-address=accessControl",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  accessControl:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: accessControl
+      ACTOR_ID: accessControl-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://accessControl-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://accessControl-sidecar:50001
+    volumes: ["./metrics/accessControl:/metrics"]
+    depends_on: [building-service, accessControl-sidecar]
+  # --- shading ---
+  shading-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=shading", "--app-port=3000",
+              "--app-channel-address=shading",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  shading:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: shading
+      ACTOR_ID: shading-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://shading-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://shading-sidecar:50001
+    volumes: ["./metrics/shading:/metrics"]
+    depends_on: [building-service, shading-sidecar]
+  # --- tempSafety ---
+  tempSafety-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=tempSafety", "--app-port=3000",
+              "--app-channel-address=tempSafety",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  tempSafety:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: tempSafety
+      ACTOR_ID: tempSafety-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://tempSafety-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://tempSafety-sidecar:50001
+    volumes: ["./metrics/tempSafety:/metrics"]
+    depends_on: [building-service, tempSafety-sidecar]
+  # --- Simulation ---
+  simulation-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=simulation", "--app-port=3000",
+              "--app-channel-address=simulation",
+              "--resources-path=/components", "--placement-host-address=placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, placement]
+  simulation:
+    build: simulation
+    volumes: ["./metrics/simulation:/metrics"]
+    depends_on:
+      - buildingSchedule
+      - roomSchedule
+      - electricalSafety
+      - energyManagement
+      - fire
+      - fireDoor
+      - gasSafety
+      - hvac
+      - lighting
+      - roomOccupancy
+      - securityManager
+      - accessControl
+      - shading
+      - tempSafety
+      - simulation-sidecar
+    command:
+      - --duration=900
+      - --startup-wait=15
+      - --dapr-url=http://simulation-sidecar:3500

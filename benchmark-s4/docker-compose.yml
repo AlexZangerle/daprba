@@ -1,0 +1,148 @@
+services:
+  redis:
+    image: redis:8-alpine
+    command: redis-server --save ""
+    ports: ["6379:6379"]
+  building-service:
+    image: alexzangerle/buildingservice-dapr-s4:latest
+    pull_policy: always
+    ports: ["8005:8005"]
+    volumes:
+      - ./metrics/building-service:/metrics
+  # Fire detection actor
+  fire-placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+  fire-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=fire", "--app-port=3000",
+              "--app-channel-address=fire",
+              "--resources-path=/components", "--placement-host-address=fire-placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, fire-placement]
+  fire:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: fire
+      ACTOR_ID: fire-0
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://fire-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://fire-sidecar:50001
+    volumes:
+      - ./metrics/fire:/metrics
+    depends_on: [building-service, fire-sidecar]
+  # Fire door runtimes (5 doors each)
+  doors0-placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+  doors0-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=doors0", "--app-port=3000",
+              "--app-channel-address=doors0",
+              "--resources-path=/components", "--placement-host-address=doors0-placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, doors0-placement]
+  doors0:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: fireDoor
+      DOOR_IDS: "0,1,2,3,4"
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://doors0-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://doors0-sidecar:50001
+    volumes:
+      - ./metrics/doors0:/metrics
+    depends_on: [building-service, doors0-sidecar]
+  doors1-placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+  doors1-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=doors1", "--app-port=3000",
+              "--app-channel-address=doors1",
+              "--resources-path=/components", "--placement-host-address=doors1-placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, doors1-placement]
+  doors1:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: fireDoor
+      DOOR_IDS: "0,1,2,3,4"
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://doors1-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://doors1-sidecar:50001
+    volumes:
+      - ./metrics/doors1:/metrics
+    depends_on: [building-service, doors1-sidecar]
+  doors2-placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+  doors2-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=doors2", "--app-port=3000",
+              "--app-channel-address=doors2",
+              "--resources-path=/components", "--placement-host-address=doors2-placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, doors2-placement]
+  doors2:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: fireDoor
+      DOOR_IDS: "0,1,2,3,4"
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://doors2-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://doors2-sidecar:50001
+    volumes:
+      - ./metrics/doors2:/metrics
+    depends_on: [building-service, doors2-sidecar]
+  doors3-placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+  doors3-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=doors3", "--app-port=3000",
+              "--app-channel-address=doors3",
+              "--resources-path=/components", "--placement-host-address=doors3-placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, doors3-placement]
+  doors3:
+    image: alexzangerle/smartbuilding-dapr:latest
+    pull_policy: always
+    environment:
+      ROLE: fireDoor
+      DOOR_IDS: "0,1,2,3,4"
+      BUILDING_SERVICE_URL: http://building-service:8005
+      DAPR_HTTP_ENDPOINT: http://doors3-sidecar:3500
+      DAPR_GRPC_ENDPOINT: http://doors3-sidecar:50001
+    volumes:
+      - ./metrics/doors3:/metrics
+    depends_on: [building-service, doors3-sidecar]
+  # Simulation
+  simulation-placement:
+    image: daprio/placement:1.16.0
+    command: ./placement --port 50006
+  simulation-sidecar:
+    image: daprio/daprd:1.16.0
+    command: ["./daprd", "--app-id=simulation", "--app-port=3000",
+              "--app-channel-address=simulation",
+              "--resources-path=/components", "--placement-host-address=simulation-placement:50006"]
+    volumes: ["./dapr-components:/components"]
+    depends_on: [redis, simulation-placement]
+  simulation:
+    image: alexzangerle/simulation-dapr-s4:latest
+    pull_policy: always
+    volumes:
+      - ./metrics/simulation:/metrics
+    depends_on: [fire, doors0, doors1, doors2, doors3, simulation-sidecar]
+    command:
+      - --sensors=5
+      - --interval=5000
+      - --duration=900
+      - --cooldown=5000
+      - --startup-wait=15
+      - --metrics=/metrics
+      - --dapr-url=http://simulation-sidecar:3500
