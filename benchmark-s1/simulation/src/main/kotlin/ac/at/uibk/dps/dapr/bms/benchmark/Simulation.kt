@@ -48,11 +48,11 @@ fun main(args: Array<String>) {
   val gasNeedsReset = AtomicBoolean(false)
   val elecNeedsReset = AtomicBoolean(false)
 
-  // ── Subscription server ──
+  // Subscription server
 
   val app = Javalin.create().start(3000)
 
-  // Dapr calls this to discover what topics we subscribe to
+  // Subscribe to topics
   app.get("/dapr/subscribe") { ctx ->
     ctx.contentType("application/json")
     ctx.result(
@@ -66,7 +66,7 @@ fun main(args: Array<String>) {
     )
   }
 
-  // Dapr delivers gasLeakDetected CloudEvents here
+  // Receive Events
   app.post("/gasLeakDetected") { ctx ->
     if (doGas) {
       gasNeedsReset.set(true)
@@ -75,7 +75,6 @@ fun main(args: Array<String>) {
     ctx.status(200)
   }
 
-  // Dapr delivers arcFaultDetected CloudEvents here
   app.post("/arcFaultDetected") { ctx ->
     if (doElec) {
       elecNeedsReset.set(true)

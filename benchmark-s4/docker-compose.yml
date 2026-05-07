@@ -139,9 +139,9 @@ services:
       - ./metrics/simulation:/metrics
     depends_on: [fire, doors0, doors1, doors2, doors3, simulation-sidecar]
     command:
-      - --sensors=5
+      - --sensors=64
       - --interval=5000
-      - --duration=900
+      - --duration=60
       - --cooldown=5000
       - --startup-wait=15
       - --metrics=/metrics

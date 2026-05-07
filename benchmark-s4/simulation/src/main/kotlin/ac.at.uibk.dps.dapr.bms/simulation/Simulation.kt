@@ -137,7 +137,10 @@ fun main(args: Array<String>) {
         }
     }
 
-    log("Done. $iteration iterations, $sensors sensors.")
+    log("Done. $iteration iterations, $sensors sensors, resetting...")
+    publish("disarmFireAlarm")
+    Thread.sleep(2000)
+    publish("disarmSmokeAlert")
 
     executor.shutdown()
     app.stop()
