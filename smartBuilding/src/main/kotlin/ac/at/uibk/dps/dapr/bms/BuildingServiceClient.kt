@@ -105,7 +105,7 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
   fun dim(roomId: String) = action("/dim", RoomRequest(roomId))
 
   fun turnUserLevel(roomId: String, level: Int) =
-    action("/userLightLevel", LightLevelRequest(roomId, level))
+    action("/userLevelLight", LightLevelRequest(roomId, level))
 
   fun evacuationLights(roomId: String, emergencyId: String) =
     action("/evacuationLights", EvacuationLightsRequest(roomId, emergencyId))
