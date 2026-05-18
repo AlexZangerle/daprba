@@ -25,15 +25,15 @@ class HvacSubscriber : ApplicationListener<ApplicationReadyEvent> {
     proxy.initialize()
   }
 
-  @Topic(name = "occupancyDetectedEvent", pubsubName = "pubsub")
-  @PostMapping("/occupancyDetectedEvent")
+  @Topic(name = "occupancyDetected", pubsubName = "pubsub")
+  @PostMapping("/occupancyDetected")
   fun handleOccupancyDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onOccupancyDetected(event.data)
   }
 
-  @Topic(name = "eOccupancyVacant", pubsubName = "pubsub")
-  @PostMapping("/eOccupancyVacant")
-  fun handleOccupancyVacant(@RequestBody event: CloudEvent<Map<String, Any>>) {
+  @Topic(name = "occupancyVacant", pubsubName = "pubsub")
+  @PostMapping("/occupancyVacant")
+  fun handloccupancyVacant(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onOccupancyVacant(event.data)
   }
 
@@ -67,8 +67,8 @@ class HvacSubscriber : ApplicationListener<ApplicationReadyEvent> {
     proxy.onEnterWeekend(event.data)
   }
 
-  @Topic(name = "energySavingMode", pubsubName = "pubsub")
-  @PostMapping("/energySavingMode")
+  @Topic(name = "energySaving", pubsubName = "pubsub")
+  @PostMapping("/energySaving")
   fun handleActivateEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onActivateEnergySaving(event.data)
   }
@@ -79,8 +79,8 @@ class HvacSubscriber : ApplicationListener<ApplicationReadyEvent> {
     proxy.onDrasticEnergySaving(event.data)
   }
 
-  @Topic(name = "energyNormalMode", pubsubName = "pubsub")
-  @PostMapping("/energyNormalMode")
+  @Topic(name = "deactivateEnergySaving", pubsubName = "pubsub")
+  @PostMapping("/deactivateEnergySaving")
   fun handleDeactivateEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onDeactivateEnergySaving(event.data)
   }

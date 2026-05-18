@@ -183,18 +183,21 @@ class HvacActorImpl(runtimeContext: ActorRuntimeContext<HvacActorImpl>, actorId:
 
   override fun onEnterBusinessHours(data: Map<String, Any>) {
     measureEventTime(data)
+    if (state == State.EMERGENCY) return
     desiredTemp = businessHoursTemp
     if (state == State.FAN_ONLY || state == State.HEATING || state == State.COOLING) pollTemp()
   }
 
   override fun onEnterAfterHours(data: Map<String, Any>) {
     measureEventTime(data)
+    if (state == State.EMERGENCY) return
     desiredTemp = afterHoursTemp
     if (state == State.FAN_ONLY || state == State.HEATING || state == State.COOLING) pollTemp()
   }
 
   override fun onEnterWeekend(data: Map<String, Any>) {
     measureEventTime(data)
+    if (state == State.EMERGENCY) return
     desiredTemp = afterHoursTemp
     if (state == State.FAN_ONLY || state == State.HEATING || state == State.COOLING) pollTemp()
   }

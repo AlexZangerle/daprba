@@ -25,8 +25,8 @@ class LightingSubscriber : ApplicationListener<ApplicationReadyEvent> {
     proxy.initialize()
   }
 
-  @Topic(name = "occupancyDetectedEvent", pubsubName = "pubsub")
-  @PostMapping("/occupancyDetectedEvent")
+  @Topic(name = "occupancyDetected", pubsubName = "pubsub")
+  @PostMapping("/occupancyDetected")
   fun handleOccupancyDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onOccupancyDetected(event.data)
   }
@@ -37,32 +37,32 @@ class LightingSubscriber : ApplicationListener<ApplicationReadyEvent> {
     proxy.onOccupancyTransient(event.data)
   }
 
-  @Topic(name = "eOccupancyVacant", pubsubName = "pubsub")
-  @PostMapping("/eOccupancyVacant")
-  fun handleOccupancyVacant(@RequestBody event: CloudEvent<Map<String, Any>>) {
+  @Topic(name = "occupancyVacant", pubsubName = "pubsub")
+  @PostMapping("/occupancyVacant")
+  fun handloccupancyVacant(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onOccupancyVacant(event.data)
   }
 
-  @Topic(name = "userLevelLight", pubsubName = "pubsub")
-  @PostMapping("/userLevelLight")
-  fun handleUserLevelLight(@RequestBody event: CloudEvent<Map<String, Any>>) {
+  @Topic(name = "userLightLevel", pubsubName = "pubsub")
+  @PostMapping("/userLightLevel")
+  fun handleuserLightLevel(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onActivateLightUserLevel(event.data)
   }
 
-  @Topic(name = "occupancyLight", pubsubName = "pubsub")
-  @PostMapping("/occupancyLight")
+  @Topic(name = "deactivateUserLightLevel", pubsubName = "pubsub")
+  @PostMapping("/deactivateUserLightLevel")
   fun handleDeactivateLightUserLevel(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onDeactivateLightUserLevel(event.data)
   }
 
-  @Topic(name = "energySavingMode", pubsubName = "pubsub")
-  @PostMapping("/energySavingMode")
+  @Topic(name = "energySaving", pubsubName = "pubsub")
+  @PostMapping("/energySaving")
   fun handleActivateEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onActivateEnergySaving(event.data)
   }
 
-  @Topic(name = "energyNormalMode", pubsubName = "pubsub")
-  @PostMapping("/energyNormalMode")
+  @Topic(name = "deactivateEnergySaving", pubsubName = "pubsub")
+  @PostMapping("/deactivateEnergySaving")
   fun handleDeactivateEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onDeactivateEnergySaving(event.data)
   }

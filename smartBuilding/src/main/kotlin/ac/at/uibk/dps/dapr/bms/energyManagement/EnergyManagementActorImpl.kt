@@ -105,7 +105,9 @@ class EnergyManagementActorImpl(
     state = State.NORMAL
     val now = Clock.System.now()
     val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
-    daprClient.publishEvent("pubsub", "energyNormalMode", mapOf("time" to epochNanos)).subscribe()
+    daprClient
+      .publishEvent("pubsub", "deactivateEnergySaving", mapOf("time" to epochNanos))
+      .subscribe()
     schedulePoll()
   }
 
@@ -113,7 +115,7 @@ class EnergyManagementActorImpl(
     state = State.PEAK
     val now = Clock.System.now()
     val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
-    daprClient.publishEvent("pubsub", "energySavingMode", mapOf("time" to epochNanos)).subscribe()
+    daprClient.publishEvent("pubsub", "energySaving", mapOf("time" to epochNanos)).subscribe()
     schedulePoll()
   }
 
@@ -132,7 +134,9 @@ class EnergyManagementActorImpl(
     cancelPoll()
     val now = Clock.System.now()
     val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
-    daprClient.publishEvent("pubsub", "energyNormalMode", mapOf("time" to epochNanos)).subscribe()
+    daprClient
+      .publishEvent("pubsub", "deactivateEnergySaving", mapOf("time" to epochNanos))
+      .subscribe()
   }
 
   private fun enterGasShutdown() {

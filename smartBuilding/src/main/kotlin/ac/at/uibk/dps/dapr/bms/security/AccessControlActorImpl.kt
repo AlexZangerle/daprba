@@ -202,7 +202,7 @@ class AccessControlActorImpl(
     if (state == State.LOCKED && isEvacuationRoute) enterEmergencyUnlock()
   }
 
-  override fun onUnlockAllEvacuationRoutes(data: Map<String, Any>) {
+  override fun onunlockEvacuationRoutes(data: Map<String, Any>) {
     measureEventTime(data)
     if (state == State.LOCKED && isEvacuationRoute) enterEmergencyUnlock()
   }

@@ -5,11 +5,11 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.util.concurrent.TimeUnit
 import org.apache.fory.Fory
 import org.apache.fory.ThreadSafeFory
 import org.apache.fory.config.Language
 import org.apache.fory.memory.MemoryBuffer
-import java.util.concurrent.TimeUnit
 
 class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005") {
 
@@ -105,7 +105,7 @@ class BuildingServiceClient(private val baseUrl: String = "http://localhost:8005
   fun dim(roomId: String) = action("/dim", RoomRequest(roomId))
 
   fun turnUserLevel(roomId: String, level: Int) =
-    action("/userLevelLight", LightLevelRequest(roomId, level))
+    action("/userLightLevel", LightLevelRequest(roomId, level))
 
   fun evacuationLights(roomId: String, emergencyId: String) =
     action("/evacuationLights", EvacuationLightsRequest(roomId, emergencyId))

@@ -66,10 +66,10 @@ class AccessControlSubscriber : ApplicationListener<ApplicationReadyEvent> {
     proxy.onGasLeakDetected(event.data)
   }
 
-  @Topic(name = "unlockAllEvacuationRoutes", pubsubName = "pubsub")
-  @PostMapping("/unlockAllEvacuationRoutes")
+  @Topic(name = "unlockEvacuationRoutes", pubsubName = "pubsub")
+  @PostMapping("/unlockEvacuationRoutes")
   fun handleUnlockEvacRoutes(@RequestBody event: CloudEvent<Map<String, Any>>) {
-    proxy.onUnlockAllEvacuationRoutes(event.data)
+    proxy.onunlockEvacuationRoutes(event.data)
   }
 
   @Topic(name = "clearSecurityAlert", pubsubName = "pubsub")

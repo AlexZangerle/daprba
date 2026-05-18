@@ -71,7 +71,7 @@ class RoomOccupancyActorImpl(
           daprClient
             .publishEvent(
               "pubsub",
-              "occupancyDetectedEvent",
+              "occupancyDetected",
               mapOf("roomId" to roomId, "time" to epochNanos),
             )
             .subscribe()
@@ -83,7 +83,7 @@ class RoomOccupancyActorImpl(
           daprClient
             .publishEvent(
               "pubsub",
-              "occupancyDetectedEvent",
+              "occupancyDetected",
               mapOf("roomId" to roomId, "time" to epochNanos),
             )
             .subscribe()
@@ -107,7 +107,7 @@ class RoomOccupancyActorImpl(
           daprClient
             .publishEvent(
               "pubsub",
-              "occupancyDetectedEvent",
+              "occupancyDetected",
               mapOf("roomId" to roomId, "time" to epochNanos),
             )
             .subscribe()
@@ -118,7 +118,7 @@ class RoomOccupancyActorImpl(
           daprClient
             .publishEvent(
               "pubsub",
-              "eOccupancyVacant",
+              "occupancyVacant",
               mapOf("roomId" to roomId, "time" to epochNanos),
             )
             .subscribe()

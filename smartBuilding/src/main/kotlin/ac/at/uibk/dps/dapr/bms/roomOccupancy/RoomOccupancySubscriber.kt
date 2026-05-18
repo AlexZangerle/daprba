@@ -25,8 +25,8 @@ class RoomOccupancySubscriber {
     proxy.onSensorOccupancyReceived(event.data)
   }
 
-  @Topic(name = "energySavingMode", pubsubName = "pubsub")
-  @PostMapping("/energySavingMode")
+  @Topic(name = "energySaving", pubsubName = "pubsub")
+  @PostMapping("/energySaving")
   fun handleEnergySaving(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onActivateEnergySaving(event.data)
   }

@@ -84,7 +84,7 @@ class SecurityManagerActorImpl(
     val now = Clock.System.now()
     val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
     daprClient
-      .publishEvent("pubsub", "unlockAllEvacuationRoutes", mapOf("time" to epochNanos))
+      .publishEvent("pubsub", "unlockEvacuationRoutes", mapOf("time" to epochNanos))
       .subscribe()
   }
 

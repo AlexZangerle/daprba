@@ -31,8 +31,8 @@ class ShadingSubscriber : ApplicationListener<ApplicationReadyEvent> {
     proxy.onActivateBlindsUserLevel(event.data)
   }
 
-  @Topic(name = "temperatureBlinds", pubsubName = "pubsub")
-  @PostMapping("/temperatureBlinds")
+  @Topic(name = "deactivateUserLevelBlinds", pubsubName = "pubsub")
+  @PostMapping("/deactivateUserLevelBlinds")
   fun handleDeactivateBlindsUserLevel(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onDeactivateBlindsUserLevel(event.data)
   }

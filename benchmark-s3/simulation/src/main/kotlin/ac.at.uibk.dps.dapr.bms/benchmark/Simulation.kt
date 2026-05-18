@@ -66,7 +66,7 @@ fun main(args: Array<String>) {
 
   val now = Clock.System.now()
   val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
-  publish("energySavingMode", """{"time":$epochNanos}""")
+  publish("energySaving", """{"time":$epochNanos}""")
   Thread.sleep(1000)
 
   log("Sending sensor events every ${intervalMs}ms...")
