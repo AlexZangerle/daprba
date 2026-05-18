@@ -40,7 +40,7 @@ class ElectricalSafetyActorImpl(
         "pollTimer",
         "onPollTimer",
         ByteArray(0),
-        Duration.ofMillis(1000),
+        Duration.ofMillis(30000),
         Duration.ofMillis(-1),
       )
       .subscribe()
