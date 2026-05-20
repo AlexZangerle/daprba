@@ -40,7 +40,7 @@ fun main(args: Array<String>) {
     println("  Metrics:      $metricsDir")
 
     val http = HttpClient.newHttpClient()
-    val executor = Executors.newFixedThreadPool(minOf(sensors, 16))
+    val executor = Executors.newFixedThreadPool(sensors)
     val fireAlarmDetectedNs = AtomicLong(0)
 
     val zones = listOf(
