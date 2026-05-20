@@ -18,8 +18,6 @@ interface AccessControlActor {
 
   fun onFireAlarm(data: Map<String, Any>)
 
-  fun onGasLeakDetected(data: Map<String, Any>)
-
   fun onunlockEvacuationRoutes(data: Map<String, Any>)
 
   fun onClearSecurityAlert(data: Map<String, Any>)

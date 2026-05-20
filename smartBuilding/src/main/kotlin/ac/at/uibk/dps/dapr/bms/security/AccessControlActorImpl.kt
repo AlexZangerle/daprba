@@ -101,7 +101,7 @@ class AccessControlActorImpl(
     state = State.CHECKING_RULES
     service.checkAccessRule(userRole, zoneId, currentScheduleMode) { decision ->
       accessDecision = decision
-      if (decision == "Allow") enterUnlocked()
+      if (decision == "allow") enterUnlocked()
       else {
         val now = Clock.System.now()
         val epochNanos = (now.epochSeconds * 1_000_000_000L) + now.nanosecondsOfSecond
@@ -194,12 +194,6 @@ class AccessControlActorImpl(
         state == State.ACCESS_DENIED
     )
       enterEmergencyUnlock()
-  }
-
-  override fun onGasLeakDetected(data: Map<String, Any>) {
-    measureEventTime(data)
-    isGasActive = true
-    if (state == State.LOCKED && isEvacuationRoute) enterEmergencyUnlock()
   }
 
   override fun onunlockEvacuationRoutes(data: Map<String, Any>) {
