@@ -38,8 +38,9 @@ fun main(args: Array<String>) {
     val arcFaultActive = AtomicBoolean(false)
     val fireAlarmActive = AtomicBoolean(false)
     val smokeAlertActive = AtomicBoolean(false)
+    val securityAlertActive = AtomicBoolean(false)
 
-    fun publish(topic: String, body: String = """{"time":${epochNanos()}}""") {
+    fun publish(topic: String, body: String) {
         val req = HttpRequest.newBuilder()
             .uri(URI.create("$daprUrl/v1.0/publish/pubsub/$topic"))
             .header("Content-Type", "application/json")
@@ -61,7 +62,8 @@ fun main(args: Array<String>) {
             {"pubsubname":"pubsub","topic":"gasLeakDetected","route":"/gasLeakDetected"},
             {"pubsubname":"pubsub","topic":"arcFaultDetected","route":"/arcFaultDetected"},
             {"pubsubname":"pubsub","topic":"fireAlarm","route":"/fireAlarm"},
-            {"pubsubname":"pubsub","topic":"smokeAlert","route":"/smokeAlert"}
+            {"pubsubname":"pubsub","topic":"smokeAlert","route":"/smokeAlert"},
+            {"pubsubname":"pubsub","topic":"flashAllLights","route":"/flashAllLights"}
         ]""")
     }
 
@@ -69,7 +71,7 @@ fun main(args: Array<String>) {
         if (gasLeakActive.compareAndSet(false, true)) {
             log("[EMERGENCY] Gas leak detected — will send gasPurged in 10s")
             scheduler.schedule({
-                publish("gasPurged")
+                publish("gasPurged", """{"time":${epochNanos()}}""")
                 gasLeakActive.set(false)
                 log("[RESET] gasPurged sent")
             }, 10, TimeUnit.SECONDS)
@@ -81,7 +83,7 @@ fun main(args: Array<String>) {
         if (arcFaultActive.compareAndSet(false, true)) {
             log("[EMERGENCY] Arc fault detected — will send electricalReset in 10s")
             scheduler.schedule({
-                publish("electricalReset")
+                publish("electricalReset", """{"time":${epochNanos()}}""")
                 arcFaultActive.set(false)
                 log("[RESET] electricalReset sent")
             }, 10, TimeUnit.SECONDS)
@@ -93,7 +95,7 @@ fun main(args: Array<String>) {
         if (fireAlarmActive.compareAndSet(false, true)) {
             log("[EMERGENCY] Fire alarm — will send disarmFireAlarm in 10s")
             scheduler.schedule({
-                publish("disarmFireAlarm")
+                publish("disarmFireAlarm", """{"time":${epochNanos()}}""")
                 fireAlarmActive.set(false)
                 log("[RESET] disarmFireAlarm sent")
             }, 10, TimeUnit.SECONDS)
@@ -105,9 +107,21 @@ fun main(args: Array<String>) {
         if (smokeAlertActive.compareAndSet(false, true)) {
             log("[EMERGENCY] Smoke alert — will send disarmSmokeAlert in 10s")
             scheduler.schedule({
-                publish("disarmSmokeAlert")
+                publish("disarmSmokeAlert", """{"time":${epochNanos()}}""")
                 smokeAlertActive.set(false)
                 log("[RESET] disarmSmokeAlert sent")
+            }, 10, TimeUnit.SECONDS)
+        }
+        ctx.status(200)
+    }
+
+    app.post("/flashAllLights") { ctx ->
+        if (securityAlertActive.compareAndSet(false, true)) {
+            log("[EMERGENCY] Security alert (flashing lights) — will send clearSecurityAlert in 10s")
+            scheduler.schedule({
+                publish("clearSecurityAlert", """{"time":${epochNanos()}}""")
+                securityAlertActive.set(false)
+                log("[RESET] clearSecurityAlert sent")
             }, 10, TimeUnit.SECONDS)
         }
         ctx.status(200)

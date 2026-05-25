@@ -7,7 +7,8 @@ services:
     image: daprio/placement:1.16.0
     command: ./placement --port 50006
   building-service:
-    build: building-service
+    image: alexzangerle/buildingservice-dapr-s6:latest
+    pull_policy: always
     ports: ["8005:8005"]
     volumes:
       - ./metrics/building-service:/metrics
@@ -286,7 +287,8 @@ services:
     volumes: ["./dapr-components:/components"]
     depends_on: [redis, placement]
   simulation:
-    build: simulation
+    image: alexzangerle/simulation-dapr-s6:latest
+    pull_policy: always
     volumes: ["./metrics/simulation:/metrics"]
     depends_on:
       - buildingSchedule

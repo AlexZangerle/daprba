@@ -106,27 +106,21 @@ fun main() {
         respondWith(ctx, OccupancyResponse(result))
     }
 
-    // HVAC consumer
     app.post("/setHVAC") { ctx ->
         val req: HvacRequest = ForySerializer.deserialize(ctx.bodyAsBytes())
-        if (req.mode == "fan" && BenchmarkLog.hvacReacted.compareAndSet(false, true)) {
-            BenchmarkLog.logEvent("hvac_consumer", req.mode)
-            println("[HVAC] ${req.mode}")
-        }
+        BenchmarkLog.logEvent("hvac_action", req.mode)
         respondEmpty(ctx)
     }
 
-    // Lighting consumer
     app.post("/turnOn") { ctx ->
-        if (BenchmarkLog.lightReacted.compareAndSet(false, true)) {
-            BenchmarkLog.logEvent("light_consumer", "turnOn")
-            println("[LIGHT] on")
-        }
+        BenchmarkLog.logEvent("lighting_action", "turnOn")
         respondEmpty(ctx)
     }
 
-    // Other endpoints
-    app.post("/turnOff") { ctx -> respondEmpty(ctx) }
+    app.post("/turnOff") { ctx ->
+        BenchmarkLog.logEvent("lighting_action", "turnOff")
+        respondEmpty(ctx)
+    }
     app.post("/dim") { ctx -> respondEmpty(ctx) }
     app.post("/evacuationLights") { ctx -> respondEmpty(ctx) }
     app.post("/userLevelLight") { ctx -> respondEmpty(ctx) }

@@ -375,8 +375,14 @@ fun main() {
     }
 
     app.post("/checkAccessRule") { ctx ->
-        log("[SECURITY] checkAccessRule → allow")
-        respondWith(ctx, AccessDecisionResponse("allow"))
+        val decision = if (ThreadLocalRandom.current().nextDouble() < 0.10) {
+            log("[SECURITY] checkAccessRule → Deny")
+            "Deny"
+        } else {
+            log("[SECURITY] checkAccessRule → Allow")
+            "Allow"
+        }
+        respondWith(ctx, AccessDecisionResponse(decision))
     }
 
     app.post("/controlDoorLock") { ctx ->
