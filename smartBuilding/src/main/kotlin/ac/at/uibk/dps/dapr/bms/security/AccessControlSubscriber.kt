@@ -101,4 +101,10 @@ class AccessControlSubscriber : ApplicationListener<ApplicationReadyEvent> {
   fun handleEnterWeekend(@RequestBody event: CloudEvent<Map<String, Any>>) {
     proxy.onEnterWeekend(event.data)
   }
+
+  @Topic(name = "gasLeakDetected", pubsubName = "pubsub")
+  @PostMapping("/gasLeakDetected")
+  fun handleGasLeakDetected(@RequestBody event: CloudEvent<Map<String, Any>>) {
+    proxy.onGasLeakDetected(event.data)
+  }
 }

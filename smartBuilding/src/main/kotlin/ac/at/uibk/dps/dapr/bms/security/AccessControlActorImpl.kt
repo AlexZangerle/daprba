@@ -241,4 +241,9 @@ class AccessControlActorImpl(
     )
       currentScheduleMode = "weekendClosed"
   }
+
+  override fun onGasLeakDetected(data: Map<String, Any>) {
+    measureEventTime(data)
+    isGasActive = true
+  }
 }

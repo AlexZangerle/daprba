@@ -182,7 +182,7 @@ fun main() {
         respondEmpty(ctx)
     }
 
-    app.post("/ackEletrical") { ctx ->
+    app.post("/ackElectrical") { ctx ->
         log("[ELEC] ackElectrical — reset complete")
         BenchmarkLog.logEvent("elec_reset", "ackElectrical")
         respondEmpty(ctx)

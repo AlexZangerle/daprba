@@ -1,4 +1,4 @@
-package ac.at.uibk.dps.dapr.bms.electricalsafety
+package ac.at.uibk.dps.dapr.bms.electricalSafety
 
 import io.dapr.Topic
 import io.dapr.actors.ActorId

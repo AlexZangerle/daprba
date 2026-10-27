@@ -2,7 +2,6 @@ package ac.at.uibk.dps.dapr.bms.electricalSafety
 
 import ac.at.uibk.dps.dapr.bms.BMS
 import ac.at.uibk.dps.dapr.bms.BuildingServiceClient
-import ac.at.uibk.dps.dapr.bms.electricalsafety.ElectricalSafetyActor
 import io.dapr.actors.ActorId
 import io.dapr.actors.runtime.AbstractActor
 import io.dapr.actors.runtime.ActorRuntimeContext

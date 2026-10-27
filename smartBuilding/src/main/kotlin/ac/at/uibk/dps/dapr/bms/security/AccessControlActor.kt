@@ -33,4 +33,6 @@ interface AccessControlActor {
   fun onEnterWeekend(data: Map<String, Any>)
 
   fun onAccessTimer()
+
+  fun onGasLeakDetected(data: Map<String, Any>)
 }
